@@ -34,12 +34,12 @@
       "config_schema": "UTF-8 onboarding rules; optional allow= within onboarding actions"
     },
     {
-      "guest_id": "trade_operator",
-      "code_id": "lean-tee/trade_operator/v1",
+      "guest_id": "guest_prog_runtime",
+      "code_id": "lean-tee/guest_prog_runtime/v1",
       "enabled": true,
       "default_profile": "lean-tee-v1",
-      "actions": ["trade.submit"],
-      "config_schema": "UTF-8 trade rules; optional allow= for trade.submit"
+      "actions": [],
+      "config_schema": "configHash=SHA256(GuestProg bytes); supply via LoadProgram / Execute.program"
     }
   ]
 }

@@ -48,7 +48,14 @@ def trade : GuestDesc := {
   actions := ["trade.submit"]
 }
 
-def builtin : List GuestDesc := [compliance, voting, onboarding, trade]
+/-- Measured RISC-V interpreter for Lean-specified GuestProg payloads. -/
+def guestProgRuntime : GuestDesc := {
+  guestId := "guest_prog_runtime"
+  codeId := "lean-tee/guest_prog_runtime/v1"
+  actions := []  -- allow-list comes from the loaded program
+}
+
+def builtin : List GuestDesc := [compliance, voting, onboarding, trade, guestProgRuntime]
 
 def aliases (id : String) : String :=
   if id.isEmpty || id == "compliance_operator/v1" then "compliance_operator"

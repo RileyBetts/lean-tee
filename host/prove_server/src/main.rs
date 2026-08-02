@@ -6,9 +6,10 @@
 //! - `SP1_PROVER` — when SP1 enabled (default `cpu`)
 
 use lean_tee_compliance::{
-    mock_proof, resolve_guest_by_code_hash, run_guest, code_hash_for, COMPLIANCE,
+    code_hash_for, mock_proof, resolve_guest_by_code_hash, run_measured, COMPLIANCE,
+    GUEST_PROG_RUNTIME, RUNTIME_CODE_ID,
 };
-use lean_tee_receipt::CryptoSuite;
+use lean_tee_receipt::{sha256, CryptoSuite};
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
 
@@ -37,29 +38,30 @@ impl Prove for ProveSvc {
         if m.config_hash.len() != 32 {
             return Err(Status::invalid_argument("config_hash must be 32 bytes"));
         }
+        let mut cfg = [0u8; 32];
+        cfg.copy_from_slice(&m.config_hash);
 
         let (outputs, proof_ref) = if use_mock() {
             warn!(guest = guest.guest_id, "mock Prove — lean-tee-v1 (not a zk proof)");
-            let outputs = run_guest(guest, &m.config_hash, &req.inputs, None, suite);
+            let outputs = run_measured(&cfg, &req.inputs, &req.program)
+                .map_err(|e| Status::invalid_argument(e))?;
             let proof = mock_proof(&m.code_hash, &m.config_hash, &req.inputs, &outputs);
             (outputs, proof.to_vec())
         } else {
             #[cfg(feature = "sp1")]
             {
-                let _ = code_hash_for;
-                // SP1 ELF is still the compliance guest in v1; multi-guest SP1 ELFs are Phase 3+.
-                if guest.guest_id != COMPLIANCE.guest_id {
-                    return Err(Status::failed_precondition(format!(
-                        "SP1 prove currently supports compliance_operator only; got {}",
-                        guest.guest_id
-                    )));
-                }
-                prove_sp1(&m, &req.inputs)
+                prove_sp1(&m, &req.inputs, &req.program)
                     .map_err(|e| Status::internal(format!("SP1 prove failed: {e}")))?
             }
             #[cfg(not(feature = "sp1"))]
             {
-                let _ = (guest, code_hash_for(&COMPLIANCE, suite));
+                let _ = (
+                    guest,
+                    code_hash_for(&COMPLIANCE, suite),
+                    GUEST_PROG_RUNTIME,
+                    RUNTIME_CODE_ID,
+                    sha256,
+                );
                 return Err(Status::failed_precondition(
                     "SP1 not compiled in; rebuild with --features sp1 or set LEAN_TEE_PROVE_MODE=mock",
                 ));
@@ -82,8 +84,9 @@ fn use_mock() -> bool {
 
 #[cfg(feature = "sp1")]
 fn prove_sp1(
-    m: &Measurement,
+    m: &pb::Measurement,
     inputs: &[u8],
+    program: &[u8],
 ) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
     use sha2::{Digest, Sha256};
     use sp1_sdk::{
@@ -98,6 +101,7 @@ fn prove_sp1(
     cfg.copy_from_slice(&m.config_hash);
     stdin.write(&cfg);
     stdin.write(&inputs.to_vec());
+    stdin.write(&program.to_vec());
 
     let client = ProverClient::from_env();
     let (public_values, report) = client.execute(ELF, stdin.clone()).run()?;

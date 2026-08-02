@@ -72,3 +72,9 @@ lean_exe adversarialMatrix where
 
 lean_exe guestRegistry where
   root := `Tests.GuestRegistry
+
+lean_exe guestProgTests where
+  root := `Tests.GuestProgMain
+
+lean_exe guestProgClient where
+  root := `LeanTee.GuestProgClientMain

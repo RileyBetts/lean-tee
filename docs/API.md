@@ -34,13 +34,13 @@ Normative fields (registry: [`config/guests/registry.json`](../config/guests/reg
 | `onboarding_operator` | `lean-tee/onboarding_operator/v1` | `supplier.register`, `purchaser.approve`, `purchaser.reject` |
 | `trade_operator` | `lean-tee/trade_operator/v1` | `trade.submit` |
 
-Unknown or disabled `guest_id` → error. Customers do **not** upload binaries (no BYO).
+Unknown or disabled `guest_id` → error. For **Lean-specified programs** (not Lean source), use `LoadProgram` / `Execute.program` with runtime `guest_prog_runtime` — see [GUEST_PROG.md](GUEST_PROG.md).
 
 ## Services
 
 | Service | Methods |
 | --- | --- |
-| `lean_tee.v1.Tee` | `Execute`, `GetReceipt`, `Measure` |
+| `Tee` | `Execute`, `GetReceipt`, `Measure`, `LoadProgram`, `GetProgram` |
 | `lean_tee.v1.Prove` | `Prove` |
 | `lean_tee.v1.Verify` | `AcceptReceipt` |
 | `lean_tee.v1.AnchorSink` | `Submit` |

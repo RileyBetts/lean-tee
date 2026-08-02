@@ -31,17 +31,22 @@ message TeeReceipt {
 }
 
 message ExecuteRequest {
-  bytes guest_id = 1;       // optional label; measurement derived from config
-  bytes config_hash = 2;    // rules / config commitment
+  bytes guest_id = 1;
+  // Raw rules/config bytes (server stores SHA256 as configHash), unless program mode.
+  bytes config_hash = 2;
   bytes inputs = 3;
   bytes nonce = 4;
   bool submit_to_sink = 5;
+  // Lean-specified GuestProg bytes (`guest_prog_runtime`). Empty => registry guest.
+  bytes program = 6;
+  // Hex id from LoadProgram (alternative to inline program).
+  string program_id = 7;
 }
 
 message ExecuteResponse {
   string job_id = 1;
-  TeeReceipt receipt = 2;   // filled when job completes (sync mock path)
-  string status = 3;        // pending | done | error
+  TeeReceipt receipt = 2;
+  string status = 3;
 }
 
 message GetReceiptRequest {
@@ -50,7 +55,8 @@ message GetReceiptRequest {
 
 message MeasureRequest {
   bytes config_hash = 1;
-  bytes guest_id = 2;       // empty => compliance_operator
+  bytes guest_id = 2;
+  bytes program = 3;
 }
 
 message MeasureResponse {
@@ -60,6 +66,7 @@ message MeasureResponse {
 message ProveRequest {
   Measurement measurement = 1;
   bytes inputs = 2;
+  bytes program = 3;
 }
 
 message ProveResponse {
@@ -69,9 +76,9 @@ message ProveResponse {
 
 message AcceptReceiptRequest {
   TeeReceipt receipt = 1;
-  bytes policy_code_hash = 2;   // allowed code hash (demo: single entry)
+  bytes policy_code_hash = 2;
   bytes policy_config_hash = 3;
-  bool proof_ok = 4;            // if false, host skipped verify; else use proof_ref
+  bool proof_ok = 4;
 }
 
 message AcceptReceiptResponse {
@@ -89,10 +96,38 @@ message SubmitAck {
   string message = 3;
 }
 
+// Lean-specified programs — executed by measured RISC-V guest_prog_runtime.
+message GuestProgram {
+  bytes program = 1;
+  string name = 2;
+}
+
+message LoadProgramRequest {
+  GuestProgram program = 1;
+}
+
+message LoadProgramResponse {
+  string program_id = 1;
+  bytes program_hash = 2;
+  bytes runtime_code_hash = 3;
+  string runtime_guest_id = 4;
+}
+
+message GetProgramRequest {
+  string program_id = 1;
+}
+
+message GetProgramResponse {
+  GuestProgram program = 1;
+  bytes program_hash = 2;
+}
+
 service Tee {
   rpc Execute(ExecuteRequest) returns (ExecuteResponse);
   rpc GetReceipt(GetReceiptRequest) returns (ExecuteResponse);
   rpc Measure(MeasureRequest) returns (MeasureResponse);
+  rpc LoadProgram(LoadProgramRequest) returns (LoadProgramResponse);
+  rpc GetProgram(GetProgramRequest) returns (GetProgramResponse);
 }
 
 service Prove {

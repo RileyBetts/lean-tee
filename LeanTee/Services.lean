@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Std.Data.HashMap
 import LeanTee.Guest
+import LeanTee.GuestProg
 import LeanTee.Guests.Registry
 import LeanTee.Control
 import LeanTee.Receipt
@@ -30,6 +31,21 @@ def JobStore.put (self : JobStore) (id : String) (r : TeeReceipt) : IO Unit := d
 
 def JobStore.get? (self : JobStore) (id : String) : IO (Option TeeReceipt) := do
   let m ← self.jobs.get
+  return m[id]?
+
+/-- In-memory store for Lean-specified GuestProg payloads (program_id → bytes). -/
+structure ProgramStore where
+  programs : IO.Ref (Std.HashMap String ByteArray)
+
+def ProgramStore.new : IO ProgramStore := do
+  let programs ← IO.mkRef (∅ : Std.HashMap String ByteArray)
+  return { programs }
+
+def ProgramStore.put (self : ProgramStore) (id : String) (prog : ByteArray) : IO Unit := do
+  self.programs.modify fun m => m.insert id prog
+
+def ProgramStore.get? (self : ProgramStore) (id : String) : IO (Option ByteArray) := do
+  let m ← self.programs.get
   return m[id]?
 
 def resolveGuestCodeHash (guestId : ByteArray) : Except String ByteArray :=
@@ -99,7 +115,13 @@ def SinkBackend.submit (b : SinkBackend) (r : TeeReceipt) : IO (String × String
     pure ("sink-webhook", s!"queued url={url}")
 
 def proveLocal (g : Guests.GuestDesc) (rulesRaw : ByteArray) (req : ProveRequest) : ProveResponse :=
-  let outputs := Guests.runGuest g req.measurement.configHash rulesRaw req.inputs
+  let outputs :=
+    if g.guestId == GuestProg.runtimeGuestId then
+      match GuestProg.runBytes req.program req.inputs with
+      | .ok o => o
+      | .error _ => "decision=deny\nreason=parse_error\n".toUTF8
+    else
+      Guests.runGuest g req.measurement.configHash rulesRaw req.inputs
   let proof := Guest.mockProof req.measurement req.inputs outputs
   { outputs, proofRef := proof }
 
@@ -122,21 +144,87 @@ def buildReceipt (m : Measurement) (inputs outputs nonce proofRef : ByteArray) :
     }
   }
 
-def handleMeasure (req : MeasureRequest) : MeasureResponse × Grpc.Status :=
-  match resolveGuestCodeHash req.guestId with
-  | .error e => ({ measurement := default }, Grpc.Status.invalidArgument e)
-  | .ok codeHash =>
-    let m : Measurement := { codeHash, configHash := Hash.sha256 req.configHash }
-    ({ measurement := m }, Grpc.Status.ok)
+def handleLoadProgram (store : ProgramStore) (req : LoadProgramRequest) :
+    IO (LoadProgramResponse × Grpc.Status) := do
+  let raw := req.program.program
+  if raw.isEmpty then
+    return ({}, Grpc.Status.invalidArgument "empty program")
+  match GuestProg.parse raw with
+  | .error e => return ({}, Grpc.Status.invalidArgument e)
+  | .ok _ =>
+    let h := Hash.sha256 raw
+    let id := Guest.hexEncode h
+    store.put id raw
+    return ({
+      programId := id
+      programHash := h
+      runtimeCodeHash := GuestProg.runtimeCodeHash
+      runtimeGuestId := GuestProg.runtimeGuestId
+    }, Grpc.Status.ok)
 
-def handleExecute (store : JobStore) (ctrl : ServerControl) (prove? : Option ProveStub)
-    (sink? : Option SinkBackend) (req : ExecuteRequest) : IO (ExecuteResponse × Grpc.Status) := do
+def handleGetProgram (store : ProgramStore) (req : GetProgramRequest) :
+    IO (GetProgramResponse × Grpc.Status) := do
+  match ← store.get? req.programId with
+  | none => return ({}, Grpc.Status.invalidArgument "unknown program_id")
+  | some raw =>
+    return ({
+      program := { program := raw, name := "" }
+      programHash := Hash.sha256 raw
+    }, Grpc.Status.ok)
+
+def handleMeasure (req : MeasureRequest) : MeasureResponse × Grpc.Status :=
+  if !req.program.isEmpty then
+    match GuestProg.parse req.program with
+    | .error e => ({ measurement := default }, Grpc.Status.invalidArgument e)
+    | .ok _ =>
+      let m : Measurement := {
+        codeHash := GuestProg.runtimeCodeHash
+        configHash := Hash.sha256 req.program
+      }
+      ({ measurement := m }, Grpc.Status.ok)
+  else
+    match resolveGuestCodeHash req.guestId with
+    | .error e => ({ measurement := default }, Grpc.Status.invalidArgument e)
+    | .ok codeHash =>
+      let m : Measurement := { codeHash, configHash := Hash.sha256 req.configHash }
+      ({ measurement := m }, Grpc.Status.ok)
+
+/-- Resolve program bytes from inline field or ProgramStore. -/
+def resolveProgramBytes (store : ProgramStore) (req : ExecuteRequest) :
+    IO (Except String (Option ByteArray)) := do
+  if !req.program.isEmpty then return .ok (some req.program)
+  if !req.programId.isEmpty then
+    match ← store.get? req.programId with
+    | some p => return .ok (some p)
+    | none => return .error s!"unknown program_id={req.programId}"
+  return .ok none
+
+def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerControl)
+    (prove? : Option ProveStub) (sink? : Option SinkBackend) (req : ExecuteRequest) :
+    IO (ExecuteResponse × Grpc.Status) := do
   match Control.checkApiKey ctrl.apiKey ctrl.presentedKey with
   | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.unauthenticated e)
   | .ok () => pure ()
-  let g ← match resolveGuest req.guestId with
+  let prog? ← match ← resolveProgramBytes progStore req with
     | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.invalidArgument e)
-    | .ok g => pure g
+    | .ok p => pure p
+  let (g, m, programBytes) ← match prog? with
+    | some prog =>
+      match GuestProg.parse prog with
+      | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.invalidArgument e)
+      | .ok _ =>
+        let g := Guests.guestProgRuntime
+        let m : Measurement := {
+          codeHash := GuestProg.runtimeCodeHash
+          configHash := Hash.sha256 prog
+        }
+        pure (g, m, prog)
+    | none =>
+      let g ← match resolveGuest req.guestId with
+        | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.invalidArgument e)
+        | .ok g => pure g
+      let m : Measurement := { codeHash := g.codeHash, configHash := Hash.sha256 req.configHash }
+      pure (g, m, ByteArray.empty)
   if !Control.aclAllows ctrl.acl ctrl.tenant g.guestId then
     return ({ jobId := "", status := s!"error:forbidden guest_id={g.guestId}" }, Grpc.Status.permissionDenied "acl")
   match ← Control.checkQuota ctrl.quotas ctrl.maxRps ctrl.maxInflight with
@@ -145,11 +233,15 @@ def handleExecute (store : JobStore) (ctrl : ServerControl) (prove? : Option Pro
   Control.beginRequest ctrl.quotas
   try
     Control.Metrics.bumpExecute ctrl.metrics
-    let m : Measurement := { codeHash := g.codeHash, configHash := Hash.sha256 req.configHash }
+    let proveReq : ProveRequest := {
+      measurement := m
+      inputs := req.inputs
+      program := programBytes
+    }
     let proveResp ← match prove? with
-      | none => pure (proveLocal g req.configHash { measurement := m, inputs := req.inputs })
+      | none => pure (proveLocal g req.configHash proveReq)
       | some stub =>
-        match ← stub.Prove { measurement := m, inputs := req.inputs } with
+        match ← stub.Prove proveReq with
         | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.internal e)
         | .ok r => pure r
     let nonce :=
@@ -237,13 +329,16 @@ def handleProve (req : ProveRequest) : ProveResponse × Grpc.Status :=
     | none => Guests.compliance
   (proveLocal g ByteArray.empty req, Grpc.Status.ok)
 
-def mkIntegratedServer (store : JobStore) (sink : SinkBackend) (policy : ServerPolicy)
-    (ctrl : ServerControl) (trustProofOk : Bool) (includeProve : Bool := true) : Grpc.Server :=
+def mkIntegratedServer (store : JobStore) (progStore : ProgramStore) (sink : SinkBackend)
+    (policy : ServerPolicy) (ctrl : ServerControl) (trustProofOk : Bool)
+    (includeProve : Bool := true) : Grpc.Server :=
   Id.run do
     let mut s := Grpc.Server.empty
-    s := registerTeeExecute s (handleExecute store ctrl none (some sink))
+    s := registerTeeExecute s (handleExecute store progStore ctrl none (some sink))
     s := registerTeeGetReceipt s (handleGetReceipt store ctrl)
     s := registerTeeMeasure s fun req => pure (handleMeasure req)
+    s := registerTeeLoadProgram s (handleLoadProgram progStore)
+    s := registerTeeGetProgram s (handleGetProgram progStore)
     s := registerVerifyAccept s (handleAccept policy ctrl trustProofOk)
     s := registerAnchorSinkSubmit s (handleSubmit sink)
     if includeProve then

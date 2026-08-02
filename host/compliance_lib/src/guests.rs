@@ -42,7 +42,13 @@ pub const TRADE: GuestDesc = GuestDesc {
     actions: &["trade.submit"],
 };
 
-pub const BUILTIN: &[GuestDesc] = &[COMPLIANCE, VOTING, ONBOARDING, TRADE];
+pub const GUEST_PROG_RUNTIME: GuestDesc = GuestDesc {
+    guest_id: "guest_prog_runtime",
+    code_id: b"lean-tee/guest_prog_runtime/v1",
+    actions: &[],
+};
+
+pub const BUILTIN: &[GuestDesc] = &[COMPLIANCE, VOTING, ONBOARDING, TRADE, GUEST_PROG_RUNTIME];
 
 pub fn normalize_guest_id(id: &str) -> &str {
     let t = id.trim();

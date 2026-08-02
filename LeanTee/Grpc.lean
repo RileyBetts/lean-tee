@@ -33,6 +33,16 @@ def Measure (self : TeeStub) (req : MeasureRequest) : IO (Except String MeasureR
   if res.status.code != .ok then return .error res.status.message
   return MeasureResponse.decode res.message
 
+def LoadProgram (self : TeeStub) (req : LoadProgramRequest) : IO (Except String LoadProgramResponse) := do
+  let res ← Grpc.Channel.unary self.channel teeService "LoadProgram" (LoadProgramRequest.encode req)
+  if res.status.code != .ok then return .error res.status.message
+  return LoadProgramResponse.decode res.message
+
+def GetProgram (self : TeeStub) (req : GetProgramRequest) : IO (Except String GetProgramResponse) := do
+  let res ← Grpc.Channel.unary self.channel teeService "GetProgram" (GetProgramRequest.encode req)
+  if res.status.code != .ok then return .error res.status.message
+  return GetProgramResponse.decode res.message
+
 end TeeStub
 
 structure ProveStub where
@@ -99,6 +109,24 @@ def registerTeeMeasure (s : Grpc.Server)
     | .ok req =>
       let (resp, st) ← h req
       return (MeasureResponse.encode resp, st)
+
+def registerTeeLoadProgram (s : Grpc.Server)
+    (h : LoadProgramRequest → IO (LoadProgramResponse × Grpc.Status)) : Grpc.Server :=
+  Grpc.Server.register s teeService "LoadProgram" fun reqBytes => do
+    match LoadProgramRequest.decode reqBytes with
+    | .error e => return (ByteArray.empty, Grpc.Status.invalidArgument e)
+    | .ok req =>
+      let (resp, st) ← h req
+      return (LoadProgramResponse.encode resp, st)
+
+def registerTeeGetProgram (s : Grpc.Server)
+    (h : GetProgramRequest → IO (GetProgramResponse × Grpc.Status)) : Grpc.Server :=
+  Grpc.Server.register s teeService "GetProgram" fun reqBytes => do
+    match GetProgramRequest.decode reqBytes with
+    | .error e => return (ByteArray.empty, Grpc.Status.invalidArgument e)
+    | .ok req =>
+      let (resp, st) ← h req
+      return (GetProgramResponse.encode resp, st)
 
 def registerProve (s : Grpc.Server)
     (h : ProveRequest → IO (ProveResponse × Grpc.Status)) : Grpc.Server :=

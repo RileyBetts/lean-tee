@@ -1,0 +1,3 @@
+lean-tee-guest-prog/v1
+name=demo-votes
+allow=vote.yes,vote.no

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- GuestProg runtime: Lean-specified programs via gRPC LoadProgram; SP1 RISC-V interpreter path
 - Unreleased: marketing docs vs Nitro ([VS_NITRO.md](docs/VS_NITRO.md)); multi-guest enterprise packaging; crypto suites; demos
 
 ## 0.1.0 — 2026-08-02

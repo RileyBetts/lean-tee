@@ -85,6 +85,7 @@ def main : IO Unit := do
     | some s => match s.toNat? with | some n => n.toUInt16 | none => 50071
     | none => 50071
   let store ← LeanTee.Services.JobStore.new
+  let progStore ← LeanTee.Services.ProgramStore.new
   let sink ← loadSink
   let policy ← loadPolicy
   let ctrl ← loadControl
@@ -97,14 +98,16 @@ def main : IO Unit := do
     let prove : LeanTee.Grpc.ProveStub := { channel := ch }
     let mut s := Grpc.Server.empty
     s := LeanTee.Grpc.registerTeeExecute s
-      (LeanTee.Services.handleExecute store ctrl (some prove) (some sink))
+      (LeanTee.Services.handleExecute store progStore ctrl (some prove) (some sink))
     s := LeanTee.Grpc.registerTeeGetReceipt s (LeanTee.Services.handleGetReceipt store ctrl)
     s := LeanTee.Grpc.registerTeeMeasure s fun req => pure (LeanTee.Services.handleMeasure req)
+    s := LeanTee.Grpc.registerTeeLoadProgram s (LeanTee.Services.handleLoadProgram progStore)
+    s := LeanTee.Grpc.registerTeeGetProgram s (LeanTee.Services.handleGetProgram progStore)
     s := LeanTee.Grpc.registerVerifyAccept s (LeanTee.Services.handleAccept policy ctrl trustProofOk)
     s := LeanTee.Grpc.registerAnchorSinkSubmit s (LeanTee.Services.handleSubmit sink)
     IO.println s!"lean-tee server 127.0.0.1:{port.toNat} (Prove → {host}:{p.toNat})"
     Grpc.Server.serveH2c s { host := "127.0.0.1", port }
   | none =>
-    let s := LeanTee.Services.mkIntegratedServer store sink policy ctrl trustProofOk true
+    let s := LeanTee.Services.mkIntegratedServer store progStore sink policy ctrl trustProofOk true
     IO.println s!"lean-tee server 127.0.0.1:{port.toNat} (in-process Prove)"
     Grpc.Server.serveH2c s { host := "127.0.0.1", port }

@@ -38,7 +38,7 @@ lake build receiptTests teeServer teeClient teeLoopback
 ./scripts/action_matrix_demo.sh
 ./scripts/enterprise_control_demo.sh
 ./scripts/cross_impl_golden_demo.sh
-./scripts/prove_mock_loopback_demo.sh
+./scripts/guest_prog_demo.sh
 ```
 
 Manual:
@@ -65,7 +65,7 @@ LEAN_TEE_PROVE_MODE=mock LEAN_TEE_PROVE_PORT=50072 \
 - Default guest: `SHA256("lean-tee/compliance_operator/v1")` (empty `guest_id`)
 - Shared Rust algorithms: crate `lean_tee_receipt` under [`host/receipt`](host/receipt)
 
-Docs: [PRODUCT](docs/PRODUCT.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
+Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
 
 ## Layout
 

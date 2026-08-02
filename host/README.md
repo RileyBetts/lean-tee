@@ -50,4 +50,5 @@ Dev-only mock (no zkVM): `LEAN_TEE_PROVE_MODE=mock`.
 ## Processor stack
 
 - Guest ISA target: SP1 RISC-V (`sp1-zkvm` 6.3.1 / Hypercube-era toolchain)
-- Lean FV ground truth (cited): sail-riscv-lean + sp1-lean assumptions in `docs/THREAT_MODEL.md`
+- Guest ELF interprets optional **Lean-specified GuestProg** bytes (see [docs/GUEST_PROG.md](../docs/GUEST_PROG.md))
+- Lean FV of full RISC-V / SP1 extractors remains a non-goal; Lean defines GuestProg + Accept checkers

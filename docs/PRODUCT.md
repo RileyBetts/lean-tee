@@ -50,7 +50,7 @@ See [ENTERPRISE.md](ENTERPRISE.md) and [SLA.md](SLA.md): mTLS (proxy), tenant AC
 ## Non-goals
 
 - Nitro / SEV / TDX / sealed confidentiality (see [VS_NITRO.md](VS_NITRO.md))
-- Customer-uploaded ELF/Wasm (BYO guest)
+- Uploading Lean *source* or arbitrary ELF/Wasm to compile on RISC-V (see [GUEST_PROG.md](GUEST_PROG.md) for Lean-**specified** GuestProg payloads)
 - Embedding lean-grpc into consumer Lake graphs (call over the wire or use `lean_tee_receipt`)
 - Full sail-riscv-lean / sp1-lean end-to-end formalization in v1.0
 - Guaranteed delivery if the prover host censors (see [SLA.md](SLA.md))

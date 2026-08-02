@@ -1,4 +1,4 @@
 # tenant_id guest_id [guest_id...]
 # Lines starting with # are comments.
-demo compliance_operator voting_operator onboarding_operator trade_operator
+demo compliance_operator voting_operator onboarding_operator trade_operator guest_prog_runtime
 votes-only voting_operator

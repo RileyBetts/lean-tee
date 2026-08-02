@@ -73,6 +73,7 @@ fn main() {
         let mut stdin = SP1Stdin::new();
         stdin.write(&config_hash);
         stdin.write(&inputs.to_vec());
+        stdin.write(&Vec::<u8>::new()); // empty program => legacy compliance path
 
         let (pv, report) = client
             .execute(ELF, stdin.clone())

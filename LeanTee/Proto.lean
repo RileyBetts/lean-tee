@@ -92,6 +92,8 @@ structure ExecuteRequest where
   inputs : ByteArray := ByteArray.empty
   nonce : ByteArray := ByteArray.empty
   submitToSink : Bool := false
+  program : ByteArray := ByteArray.empty
+  programId : String := ""
   deriving Inhabited
 
 def ExecuteRequest.encode (m : ExecuteRequest) : ByteArray :=
@@ -102,6 +104,8 @@ def ExecuteRequest.encode (m : ExecuteRequest) : ByteArray :=
     if !m.inputs.isEmpty then acc := Proto.Wire.encodeBytes acc 3 m.inputs
     if !m.nonce.isEmpty then acc := Proto.Wire.encodeBytes acc 4 m.nonce
     if m.submitToSink then acc := Proto.Wire.encodeBool acc 5 true
+    if !m.program.isEmpty then acc := Proto.Wire.encodeBytes acc 6 m.program
+    if !m.programId.isEmpty then acc := Proto.Wire.encodeString acc 7 m.programId
     return acc
 
 def ExecuteRequest.decode (b : ByteArray) : Except String ExecuteRequest := do
@@ -112,6 +116,8 @@ def ExecuteRequest.decode (b : ByteArray) : Except String ExecuteRequest := do
     inputs := (Proto.Wire.fieldBytes? fields 3).getD ByteArray.empty
     nonce := (Proto.Wire.fieldBytes? fields 4).getD ByteArray.empty
     submitToSink := ((Proto.Wire.fieldUInt32? fields 5).getD 0) != 0
+    program := (Proto.Wire.fieldBytes? fields 6).getD ByteArray.empty
+    programId := (Proto.Wire.fieldString? fields 7).getD ""
   }
 
 structure ExecuteResponse where
@@ -157,6 +163,7 @@ def GetReceiptRequest.decode (b : ByteArray) : Except String GetReceiptRequest :
 structure MeasureRequest where
   configHash : ByteArray := ByteArray.empty
   guestId : ByteArray := ByteArray.empty
+  program : ByteArray := ByteArray.empty
   deriving Inhabited
 
 def MeasureRequest.encode (m : MeasureRequest) : ByteArray :=
@@ -164,6 +171,7 @@ def MeasureRequest.encode (m : MeasureRequest) : ByteArray :=
     let mut acc := ByteArray.empty
     if !m.configHash.isEmpty then acc := Proto.Wire.encodeBytes acc 1 m.configHash
     if !m.guestId.isEmpty then acc := Proto.Wire.encodeBytes acc 2 m.guestId
+    if !m.program.isEmpty then acc := Proto.Wire.encodeBytes acc 3 m.program
     return acc
 
 def MeasureRequest.decode (b : ByteArray) : Except String MeasureRequest := do
@@ -171,6 +179,7 @@ def MeasureRequest.decode (b : ByteArray) : Except String MeasureRequest := do
   return {
     configHash := (Proto.Wire.fieldBytes? fields 1).getD ByteArray.empty
     guestId := (Proto.Wire.fieldBytes? fields 2).getD ByteArray.empty
+    program := (Proto.Wire.fieldBytes? fields 3).getD ByteArray.empty
   }
 
 structure MeasureResponse where
@@ -189,6 +198,7 @@ def MeasureResponse.decode (b : ByteArray) : Except String MeasureResponse := do
 structure ProveRequest where
   measurement : LeanTee.Measurement := { codeHash := ByteArray.empty, configHash := ByteArray.empty }
   inputs : ByteArray := ByteArray.empty
+  program : ByteArray := ByteArray.empty
   deriving Inhabited
 
 def ProveRequest.encode (m : ProveRequest) : ByteArray :=
@@ -196,6 +206,7 @@ def ProveRequest.encode (m : ProveRequest) : ByteArray :=
     let mut acc := ByteArray.empty
     acc := Proto.Wire.encodeMessage acc 1 (Measurement.encode m.measurement)
     if !m.inputs.isEmpty then acc := Proto.Wire.encodeBytes acc 2 m.inputs
+    if !m.program.isEmpty then acc := Proto.Wire.encodeBytes acc 3 m.program
     return acc
 
 def ProveRequest.decode (b : ByteArray) : Except String ProveRequest := do
@@ -205,6 +216,7 @@ def ProveRequest.decode (b : ByteArray) : Except String ProveRequest := do
   return {
     measurement
     inputs := (Proto.Wire.fieldBytes? fields 2).getD ByteArray.empty
+    program := (Proto.Wire.fieldBytes? fields 3).getD ByteArray.empty
   }
 
 structure ProveResponse where
@@ -305,6 +317,96 @@ def SubmitAck.decode (b : ByteArray) : Except String SubmitAck := do
     ok := ((Proto.Wire.fieldUInt32? fields 1).getD 0) != 0
     ref := (Proto.Wire.fieldString? fields 2).getD ""
     message := (Proto.Wire.fieldString? fields 3).getD ""
+  }
+
+structure GuestProgram where
+  program : ByteArray := ByteArray.empty
+  name : String := ""
+  deriving Inhabited
+
+def GuestProgram.encode (m : GuestProgram) : ByteArray :=
+  Id.run do
+    let mut acc := ByteArray.empty
+    if !m.program.isEmpty then acc := Proto.Wire.encodeBytes acc 1 m.program
+    if !m.name.isEmpty then acc := Proto.Wire.encodeString acc 2 m.name
+    return acc
+
+def GuestProgram.decode (b : ByteArray) : Except String GuestProgram := do
+  let fields ← Proto.Wire.decodeFields (Bytes.Slice.ofByteArray b)
+  return {
+    program := (Proto.Wire.fieldBytes? fields 1).getD ByteArray.empty
+    name := (Proto.Wire.fieldString? fields 2).getD ""
+  }
+
+structure LoadProgramRequest where
+  program : GuestProgram := {}
+  deriving Inhabited
+
+def LoadProgramRequest.encode (m : LoadProgramRequest) : ByteArray :=
+  Proto.Wire.encodeMessage ByteArray.empty 1 (GuestProgram.encode m.program)
+
+def LoadProgramRequest.decode (b : ByteArray) : Except String LoadProgramRequest := do
+  let fields ← Proto.Wire.decodeFields (Bytes.Slice.ofByteArray b)
+  let pb := (Proto.Wire.fieldBytes? fields 1).getD ByteArray.empty
+  let program ← GuestProgram.decode pb
+  return { program }
+
+structure LoadProgramResponse where
+  programId : String := ""
+  programHash : ByteArray := ByteArray.empty
+  runtimeCodeHash : ByteArray := ByteArray.empty
+  runtimeGuestId : String := ""
+  deriving Inhabited
+
+def LoadProgramResponse.encode (m : LoadProgramResponse) : ByteArray :=
+  Id.run do
+    let mut acc := ByteArray.empty
+    if !m.programId.isEmpty then acc := Proto.Wire.encodeString acc 1 m.programId
+    if !m.programHash.isEmpty then acc := Proto.Wire.encodeBytes acc 2 m.programHash
+    if !m.runtimeCodeHash.isEmpty then acc := Proto.Wire.encodeBytes acc 3 m.runtimeCodeHash
+    if !m.runtimeGuestId.isEmpty then acc := Proto.Wire.encodeString acc 4 m.runtimeGuestId
+    return acc
+
+def LoadProgramResponse.decode (b : ByteArray) : Except String LoadProgramResponse := do
+  let fields ← Proto.Wire.decodeFields (Bytes.Slice.ofByteArray b)
+  return {
+    programId := (Proto.Wire.fieldString? fields 1).getD ""
+    programHash := (Proto.Wire.fieldBytes? fields 2).getD ByteArray.empty
+    runtimeCodeHash := (Proto.Wire.fieldBytes? fields 3).getD ByteArray.empty
+    runtimeGuestId := (Proto.Wire.fieldString? fields 4).getD ""
+  }
+
+structure GetProgramRequest where
+  programId : String := ""
+  deriving Inhabited
+
+def GetProgramRequest.encode (m : GetProgramRequest) : ByteArray :=
+  if m.programId.isEmpty then ByteArray.empty
+  else Proto.Wire.encodeString ByteArray.empty 1 m.programId
+
+def GetProgramRequest.decode (b : ByteArray) : Except String GetProgramRequest := do
+  let fields ← Proto.Wire.decodeFields (Bytes.Slice.ofByteArray b)
+  return { programId := (Proto.Wire.fieldString? fields 1).getD "" }
+
+structure GetProgramResponse where
+  program : GuestProgram := {}
+  programHash : ByteArray := ByteArray.empty
+  deriving Inhabited
+
+def GetProgramResponse.encode (m : GetProgramResponse) : ByteArray :=
+  Id.run do
+    let mut acc := ByteArray.empty
+    acc := Proto.Wire.encodeMessage acc 1 (GuestProgram.encode m.program)
+    if !m.programHash.isEmpty then acc := Proto.Wire.encodeBytes acc 2 m.programHash
+    return acc
+
+def GetProgramResponse.decode (b : ByteArray) : Except String GetProgramResponse := do
+  let fields ← Proto.Wire.decodeFields (Bytes.Slice.ofByteArray b)
+  let pb := (Proto.Wire.fieldBytes? fields 1).getD ByteArray.empty
+  let program ← GuestProgram.decode pb
+  return {
+    program
+    programHash := (Proto.Wire.fieldBytes? fields 2).getD ByteArray.empty
   }
 
 end LeanTee.Proto

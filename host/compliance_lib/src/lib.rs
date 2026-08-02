@@ -2,8 +2,10 @@
 //! Receipt crypto lives in `lean_tee_receipt`.
 
 mod guests;
+mod guest_prog;
 
 pub use guests::*;
+pub use guest_prog::*;
 
 use lean_tee_receipt::CryptoSuite;
 
