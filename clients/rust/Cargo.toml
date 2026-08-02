@@ -1,0 +1,17 @@
+[package]
+name = "lean_tee_client"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Thin tonic client for lean_tee.v1 Tee + Prove"
+
+[dependencies]
+lean_tee_receipt = { path = "../../host/receipt" }
+prost = "0.13"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tonic = { version = "0.12", features = ["transport"] }
+hex = "0.4"
+
+[build-dependencies]
+protoc-bin-vendored = "3"
+tonic-build = "0.12"

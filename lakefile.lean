@@ -11,6 +11,14 @@ package «lean-tee» where
   keywords := #["tee", "zkvm", "grpc", "compliance", "attestation"]
   description := "Lean-specified zkTEE: measured guest execution, hashed receipts, lean-grpc APIs"
 
+/--
+lean-grpc dependency.
+
+Pinned revision in CI / docs: **v1.0.0**.
+Default: sibling path `../lean-grpc` (clone or CI checkout at that ref).
+To force git: replace with
+  `require «lean-grpc» from git "https://github.com/RileyBetts/lean-grpc.git" @ "v1.0.0"`
+-/
 require «lean-grpc» from ".." / "lean-grpc"
 
 target sha256_ffi.o pkg : FilePath := do
@@ -25,7 +33,6 @@ target sha256_ffi.o pkg : FilePath := do
     for a in (cleaned.splitOn " ").filter (· ≠ "") do
       incArgs := incArgs.push a
   else
-    -- Prefer sibling lean-grpc vendored headers when system OpenSSL is absent.
     let siblingInc := pkg.dir / ".." / "lean-grpc" / ".lake" / "deps" / "openssl-3.0.13" / "include"
     let vendoredInc := pkg.dir / ".lake" / "deps" / "openssl-3.0.13" / "include"
     if ← siblingInc.pathExists then
@@ -39,7 +46,6 @@ lean_lib LeanTee where
   moreLinkObjs := #[sha256_ffi.o]
   moreLinkArgs := #["-lssl", "-lcrypto"]
 
--- FFI object is linked via `LeanTee` lib (exes inherit through dependency).
 lean_exe receiptTests where
   root := `Tests.ReceiptMain
 
@@ -57,3 +63,6 @@ lean_exe proveMockServer where
 
 lean_exe rustProveLoopback where
   root := `Tests.RustProveLoopback
+
+lean_exe goldenVectors where
+  root := `Tests.GoldenVectors

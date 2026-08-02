@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lean-mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: lean-tee
+      - uses: actions/checkout@v4
+        with:
+          repository: RileyBetts/lean-grpc
+          ref: v1.0.0
+          path: lean-grpc
+      - name: Install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libssl-dev pkg-config
+      - uses: leanprover/lean-action@v1
+        with:
+          build: false
+      - name: Build + standalone demo
+        working-directory: lean-tee
+        run: |
+          set -euo pipefail
+          lake build receiptTests teeServer teeClient teeLoopback goldenVectors
+          ./.lake/build/bin/receiptTests
+          ./.lake/build/bin/goldenVectors
+          bash scripts/standalone_demo.sh
+
+  rust-mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test receipt + compliance
+        working-directory: host
+        run: cargo test -p lean_tee_receipt -p lean_tee_compliance
+      - name: Build mock prove_server
+        working-directory: host
+        run: cargo build -p lean_tee_prove_server
+      - name: Build Rust client
+        run: cargo build --manifest-path clients/rust/Cargo.toml

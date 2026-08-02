@@ -32,4 +32,25 @@ def concatLenPrefixed (chunks : Array ByteArray) : ByteArray :=
 
 def domainSeparator : ByteArray := "lean-tee/v1".toUTF8
 
+private def hexVal (c : Char) : Option UInt8 :=
+  let n := c.toNat
+  if '0'.toNat ≤ n ∧ n ≤ '9'.toNat then some (n - '0'.toNat).toUInt8
+  else if 'a'.toNat ≤ n ∧ n ≤ 'f'.toNat then some (n - 'a'.toNat + 10).toUInt8
+  else if 'A'.toNat ≤ n ∧ n ≤ 'F'.toNat then some (n - 'A'.toNat + 10).toUInt8
+  else none
+
+/-- Decode lowercase/uppercase hex into bytes; `none` on odd length or bad digits. -/
+def hexDecode? (s : String) : Option ByteArray :=
+  if s.length % 2 != 0 then none
+  else Id.run do
+    let mut out := ByteArray.empty
+    let mut i := 0
+    while i + 1 < s.length do
+      match hexVal (s.get! ⟨i⟩), hexVal (s.get! ⟨i + 1⟩) with
+      | some hi, some lo =>
+        out := out.push (hi * 16 + lo)
+        i := i + 2
+      | _, _ => return none
+    return some out
+
 end LeanTee.Hash

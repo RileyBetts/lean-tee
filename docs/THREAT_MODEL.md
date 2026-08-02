@@ -1,28 +1,28 @@
-# lean-tee threat model (v1)
+# lean-tee threat model
 
 ## Goals
 
 - **Integrity:** prove a measured guest ran on given public inputs and produced the claimed outputs.
-- **Cheap reject:** adversarial nodes cannot forge `TeeReceipt`s that pass `acceptReceipt` + proof check.
+- **Cheap reject:** adversarial nodes cannot forge `TeeReceipt`s that pass accept + proof check for the active profile.
 - **Portable attestation:** no AWS Nitro / cloud PKI root of trust.
 
-## Non-goals (v1)
+## Non-goals
 
 - Confidentiality / sealed memory (Nitro-style secrecy).
 - Proving oracle honesty (host-supplied chain views).
 - Guaranteed delivery if the prover host censors submissions.
-- Full formal verification of the Rust/SP1 host or constraint extractors.
+- Full formal verification of the Rust/SP1 host or constraint extractors (v1.0).
 
 ## Trust model
 
 | Component | Trust |
 | --- | --- |
 | Lean `acceptReceipt` + SHA-256 `resultHash` | Trusted checkers (this repo) |
-| Guest measurement allow-list | Governance |
-| Mock proof (`Guest.mockProof`) / `SP1_PROVER=mock` | **Dev/demo only** |
-| SP1 RISC-V guest (`host/guest`, toolchain 6.3.1) | Execution checked via `sp1_smoke --execute-only` |
-| SP1 CPU prove (`SP1_PROVER=cpu`) | Real proofs; **high RAM** — use one case at a time |
-| sail-riscv-lean / sp1-lean | Cited FV assumptions (not imported end-to-end yet) |
+| `lean_tee_receipt` (Rust twin of hash/mock) | Same algorithms; golden-vector gated |
+| Guest measurement allow-list / policy file | Governance |
+| Mock proof (`lean-tee-v1`) | **Dev/demo only** — not production attestation |
+| SP1 RISC-V guest + host verify (`lean-tee-v2`) | Integrity under SP1 + host TCB |
+| Client-supplied `proof_ok` | **Not trusted** for non-mock proofs |
 | lean-grpc transport | Authenticate with mTLS in production |
 | Prover host OS | Untrusted for integrity (proof + hash decide) |
 
@@ -34,3 +34,8 @@ resultHash = SHA256( len-prefixed(
 ```
 
 Tampering with outputs without recomputing a valid proof and hash fails verification.
+
+## Profiles
+
+- **`lean-tee-v1`:** mock proof digest must match; suitable for CI and cheap reject demos.
+- **`lean-tee-v2`:** `proof_ref` commits to a host-verified SP1 proof; AcceptReceipt must not accept on client `proof_ok` alone.

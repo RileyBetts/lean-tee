@@ -1,7 +1,10 @@
 .lake/
-lake-manifest.json
 *.ilean
 *.olean
 *.trace
 host/target/
+clients/rust/target/
 .lake/lib/
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,13 @@
+[package]
+name = "lean_tee_receipt"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "lean-tee receipt crypto: resultHash, mock proof, binding helpers (Anchor-linkable)"
+
+[dependencies]
+hex = "0.4"
+sha2 = "0.10"
+
+[dev-dependencies]
+serde_json = "1"

@@ -1,12 +1,11 @@
-//! `lean_tee.v1.Prove` — SP1 RISC-V zkVM prove/verify (default).
+//! `lean_tee.v1.Prove` — mock by default; SP1 with `--features sp1`.
 //!
 //! Env:
 //! - `LEAN_TEE_PROVE_PORT` (default 50072)
-//! - `SP1_PROVER` — `cpu` (default for local) | `mock` | network modes per SP1 docs
-//! - `LEAN_TEE_PROVE_MODE=mock` — skip zkVM; Lean-compatible mock proof (dev only)
+//! - `LEAN_TEE_PROVE_MODE=mock` — force mock even when SP1 feature is enabled
+//! - `SP1_PROVER` — when SP1 enabled (default `cpu`)
 
 use lean_tee_compliance::{code_hash, mock_proof, run_compliance};
-use sha2::{Digest, Sha256};
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
 
@@ -15,7 +14,7 @@ pub mod pb {
 }
 
 use pb::prove_server::{Prove, ProveServer};
-use pb::{Measurement, ProveRequest, ProveResponse};
+use pb::{ProveRequest, ProveResponse};
 
 #[derive(Default)]
 struct ProveSvc;
@@ -37,14 +36,23 @@ impl Prove for ProveSvc {
             return Err(Status::invalid_argument("config_hash must be 32 bytes"));
         }
 
-        let (outputs, proof_ref) = if mock_mode() {
-            warn!("LEAN_TEE_PROVE_MODE=mock — not a zk proof");
+        let (outputs, proof_ref) = if use_mock() {
+            warn!("mock Prove — lean-tee-v1 (not a zk proof)");
             let outputs = run_compliance(&m.config_hash, &req.inputs);
             let proof = mock_proof(&m.code_hash, &m.config_hash, &req.inputs, &outputs);
             (outputs, proof.to_vec())
         } else {
-            prove_sp1(&m, &req.inputs)
-                .map_err(|e| Status::internal(format!("SP1 prove failed: {e}")))?
+            #[cfg(feature = "sp1")]
+            {
+                prove_sp1(&m, &req.inputs)
+                    .map_err(|e| Status::internal(format!("SP1 prove failed: {e}")))?
+            }
+            #[cfg(not(feature = "sp1"))]
+            {
+                return Err(Status::failed_precondition(
+                    "SP1 not compiled in; rebuild with --features sp1 or set LEAN_TEE_PROVE_MODE=mock",
+                ));
+            }
         };
 
         Ok(Response::new(ProveResponse {
@@ -54,17 +62,22 @@ impl Prove for ProveSvc {
     }
 }
 
-fn mock_mode() -> bool {
+fn use_mock() -> bool {
     matches!(
         std::env::var("LEAN_TEE_PROVE_MODE").as_deref(),
         Ok("mock")
-    )
+    ) || !cfg!(feature = "sp1")
 }
 
-fn prove_sp1(m: &Measurement, inputs: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
+#[cfg(feature = "sp1")]
+fn prove_sp1(
+    m: &Measurement,
+    inputs: &[u8],
+) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
+    use sha2::{Digest, Sha256};
     use sp1_sdk::{
-        blocking::{ProveRequest, Prover, ProverClient},
-        include_elf, Elf, ProvingKey, SP1Stdin,
+        blocking::{Prover, ProverClient},
+        include_elf, Elf, SP1Stdin,
     };
 
     const ELF: Elf = include_elf!("lean_tee_guest");
@@ -76,8 +89,6 @@ fn prove_sp1(m: &Measurement, inputs: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Box<d
     stdin.write(&inputs.to_vec());
 
     let client = ProverClient::from_env();
-
-    // Execute to obtain public outputs and cycle report.
     let (public_values, report) = client.execute(ELF, stdin.clone()).run()?;
     let outputs = public_values.as_slice().to_vec();
     info!(
@@ -88,11 +99,12 @@ fn prove_sp1(m: &Measurement, inputs: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Box<d
 
     let pk = client.setup(ELF)?;
     let proof = client.prove(&pk, stdin).run()?;
+    // Host verify — lean-tee-v2: never skip this before advertising proof_ref.
     client.verify(&proof, pk.verifying_key(), None)?;
 
     let proof_bytes = bincode::serialize(&proof)?;
     let proof_ref = Sha256::digest(&proof_bytes).to_vec();
-    info!(proof_ref = %hex::encode(&proof_ref), "SP1 prove+verify OK");
+    info!(proof_ref = %hex::encode(&proof_ref), "SP1 prove+verify OK (lean-tee-v2)");
     Ok((outputs, proof_ref))
 }
 
@@ -105,8 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .init();
 
-    // Prefer local CPU prover unless caller set SP1_PROVER.
-    if std::env::var_os("SP1_PROVER").is_none() {
+    if cfg!(feature = "sp1") && std::env::var_os("SP1_PROVER").is_none() {
         std::env::set_var("SP1_PROVER", "cpu");
     }
 
@@ -117,9 +128,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("127.0.0.1:{port}").parse()?;
     info!(
         %addr,
-        sp1_prover = ?std::env::var("SP1_PROVER").ok(),
-        mock = mock_mode(),
-        "lean-tee Prove server (SP1 RISC-V)"
+        mock = use_mock(),
+        sp1_feature = cfg!(feature = "sp1"),
+        "lean-tee Prove server"
     );
 
     Server::builder()

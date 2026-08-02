@@ -1,0 +1,13 @@
+{"version": "1.2.0",
+ "packagesDir": ".lake/packages",
+ "packages":
+ [{"type": "path",
+   "scope": "",
+   "name": "«lean-grpc»",
+   "manifestFile": "lake-manifest.json",
+   "inherited": false,
+   "dir": "../lean-grpc",
+   "configFile": "lakefile.lean"}],
+ "name": "«lean-tee»",
+ "lakeDir": ".lake",
+ "fixedToolchain": false}

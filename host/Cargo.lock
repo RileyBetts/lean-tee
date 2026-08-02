@@ -1780,6 +1780,7 @@ name = "lean_tee_compliance"
 version = "0.1.0"
 dependencies = [
  "hex",
+ "lean_tee_receipt",
  "sha2",
 ]
 
@@ -1799,6 +1800,7 @@ dependencies = [
  "bytes",
  "hex",
  "lean_tee_compliance",
+ "lean_tee_receipt",
  "prost",
  "protoc-bin-vendored",
  "serde",
@@ -1810,6 +1812,15 @@ dependencies = [
  "tonic-build",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "lean_tee_receipt"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
