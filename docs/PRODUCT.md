@@ -2,9 +2,24 @@
 
 ## What this is
 
-A **portable integrity TEE compute platform**: run a **registered, measured guest**, bind public I/O into a hashed receipt, prove (mock or SP1), and verify so downstream systems can accept honest results or cheaply reject forged evidence.
+A **portable integrity TEE compute platform** for open-source and multi-party systems: run a **registered, measured guest**, bind **public** I/O into a hashed receipt, prove (mock or SP1), and verify so downstream systems can accept honest results or cheaply reject forged evidence.
 
-Not a confidentiality enclave (no Nitro / sealed memory). Positioning vs AWS Nitro: **integrity + cheap reject for public computation**, not secret isolation.
+**Marketing one-liner:** *Open attestation for public compute — Nitro-class integrity claims you can verify anywhere, without Nitro’s confidentiality boundary.*
+
+Not a confidentiality enclave. Full can/can’t matrix vs AWS Nitro: **[VS_NITRO.md](VS_NITRO.md)**.
+
+## Who it is for
+
+- Teams building **compliance / voting / trade** gates where evidence is public but must be unforgeable
+- Chains, agents, and ledgers that need **cheap reject** of adversarial receipts
+- Enterprises that want **portable** attestation (CI → staging → multi-cloud) without AWS PCR roots
+- Builders who prefer a **small guest registry** + Lean/Rust specs over a general enclave VM
+
+## Who should keep Nitro (or similar)
+
+- Workloads that **decrypt secrets**, hold keys, or process regulated data the host must not see
+- Apps that need **KMS release-to-enclave** or NSM/PCR attestation inside AWS
+- Anyone needing a **drop-in Nitro / vsock** replacement
 
 ## Multi-guest registry
 
@@ -34,7 +49,7 @@ See [ENTERPRISE.md](ENTERPRISE.md) and [SLA.md](SLA.md): mTLS (proxy), tenant AC
 
 ## Non-goals
 
-- Nitro / SEV / TDX / sealed confidentiality
+- Nitro / SEV / TDX / sealed confidentiality (see [VS_NITRO.md](VS_NITRO.md))
 - Customer-uploaded ELF/Wasm (BYO guest)
 - Embedding lean-grpc into consumer Lake graphs (call over the wire or use `lean_tee_receipt`)
 - Full sail-riscv-lean / sp1-lean end-to-end formalization in v1.0

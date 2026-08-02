@@ -8,7 +8,7 @@
 
 ## Non-goals
 
-- Confidentiality / sealed memory (Nitro-style secrecy).
+- Confidentiality / sealed memory (Nitro-style secrecy) — see [VS_NITRO.md](VS_NITRO.md).
 - Proving oracle honesty (host-supplied chain views).
 - Guaranteed delivery if the prover host censors submissions.
 - Full formal verification of the Rust/SP1 host or constraint extractors (v1.0).

@@ -1,15 +1,30 @@
 # lean-tee
 
-**Portable integrity TEE compute** — registered measured guests, hashed receipts, and lean-grpc APIs so enterprises and chains can accept honest public results or cheaply reject forged ones.
+**Portable integrity TEE compute for open systems** — measured guests, hashed receipts, and lean-grpc APIs so anyone can accept honest public results or cheaply reject forged ones — without AWS Nitro, sealed memory, or a cloud PKI root of trust.
 
-Not a confidentiality enclave (no Nitro / sealed memory). See [docs/PRODUCT.md](docs/PRODUCT.md).
+> **Not a confidentiality enclave.** lean-tee does **not** hide secrets from the host. It replaces Nitro’s *“prove this code ran on this I/O”* role for **public** workloads; it does **not** replace Nitro’s *“keep keys/data sealed”* role. Full matrix: **[docs/VS_NITRO.md](docs/VS_NITRO.md)**.
 
 | Profile | Prove | Verify | Use |
 | --- | --- | --- | --- |
-| **`lean-tee-v1`** | Mock proof (`SHA256` domain `lean-tee/mock-proof/v1`) | Recompute resultHash + mock proof | CI, demos |
+| **`lean-tee-v1`** | Mock proof | Recompute resultHash + mock | CI, demos only |
 | **`lean-tee-v2`** | SP1 Hypercube RISC-V | Host verifies SP1; never trust client `proof_ok` alone | **Production integrity** |
 
 **First-party guests:** `compliance_operator`, `voting_operator`, `onboarding_operator`, `trade_operator` ([registry](config/guests/registry.json)).
+
+## Why open source this?
+
+- **Portable attestation** — verify on CI, another cloud, or a chain without embedding AWS PCR/NSM trust.
+- **Cheap reject** — forged receipts fail Accept; goldens + adversarial demos gate the algorithms.
+- **Spec-first** — Lean checkers + Rust `lean_tee_receipt` twin; wire proto is normative.
+- **Multi-guest enterprise shape** — ACL, audit, quotas, durable jobs ([ENTERPRISE.md](docs/ENTERPRISE.md)) without pretending to be Nitro.
+
+## Nitro in one glance
+
+| Need | Use |
+| --- | --- |
+| Integrity of public compute + multi-party verify | **lean-tee** |
+| Sealed secrets / KMS release to enclave PCRs | **AWS Nitro** (or similar confidential TEE) |
+| Both | Compose: confidential TEE for secrets + lean-tee for public receipts |
 
 ## Quickstart (mock, no SP1)
 
@@ -47,32 +62,27 @@ LEAN_TEE_PROVE_MODE=mock LEAN_TEE_PROVE_PORT=50072 \
 - Wire: [`proto/lean_tee/v1/tee.proto`](proto/lean_tee/v1/tee.proto)
 - `resultHash` domain: `lean-tee/v1` (length-prefixed SHA-256)
 - Mock `proof_ref` domain: `lean-tee/mock-proof/v1`
-- Guest code id: `SHA256("lean-tee/compliance_operator/v1")`
+- Default guest: `SHA256("lean-tee/compliance_operator/v1")` (empty `guest_id`)
 - Shared Rust algorithms: crate `lean_tee_receipt` under [`host/receipt`](host/receipt)
 
-See [docs/PRODUCT.md](docs/PRODUCT.md), [docs/API.md](docs/API.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/ENTERPRISE.md](docs/ENTERPRISE.md), [docs/SLA.md](docs/SLA.md).
+Docs: [PRODUCT](docs/PRODUCT.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
 
 ## Layout
 
 | Path | Role |
 | --- | --- |
-| `LeanTee/` | Spec: hash, receipts, guest, codecs, gRPC services |
+| `LeanTee/` | Spec: hash, receipts, guests, control plane, gRPC services |
 | `proto/lean_tee/v1/` | Normative `.proto` |
 | `host/receipt` | Shared Rust receipt crypto (Anchor-linkable) |
-| `host/compliance_lib` | Guest compliance logic |
+| `host/compliance_lib` | Multi-guest operator logic |
 | `host/prove_server` | tonic Prove (mock and/or SP1) |
 | `host/guest` | SP1 RISC-V guest ELF |
 | `clients/python` | Python Execute / AcceptReceipt SDK |
 | `clients/rust` | Thin tonic Tee + Prove client |
-| `Tests/` | Receipt + gRPC loopbacks |
 | `config/guests/` | First-party guest registry |
-| `docs/` | Product, API, threat model, CRYPTO, ENTERPRISE, SLA, Anchor multi-guest |
-| `scripts/standalone_demo.sh` | Clone-and-run mock gate |
-| `scripts/adversarial_matrix_demo.sh` | Field mutations → exact reject reasons (Lean/Rust/Python) |
-| `scripts/action_matrix_demo.sh` | Per-guest allow/deny matrix |
-| `scripts/enterprise_control_demo.sh` | ACL + audit + durable jobs |
-| `scripts/cross_impl_golden_demo.sh` | Golden vectors across Lean / Rust / Python |
-| `scripts/prove_mock_loopback_demo.sh` | Lean Tee ↔ Rust Prove (mock) |
+| `Tests/` | Receipt + guest registry + gRPC loopbacks |
+| `docs/` | Product, Nitro comparison, API, threat, CRYPTO, ENTERPRISE, SLA |
+| `scripts/*_demo.sh` | Standalone, adversarial, action, enterprise, golden, prove loopback |
 
 ## Dependencies
 
