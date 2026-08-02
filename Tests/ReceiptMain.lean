@@ -60,4 +60,27 @@ def main : IO Unit := do
   let denyOut := Guest.runCompliance { rulesHash := cfgHash } denyIn
   expect ((Guest.inputsAsString denyOut).startsWith "decision=deny") "deny decision in outputs"
 
+  -- Empty crypto_suite normalizes to sha256+mock and accepts
+  let emptySuite := { r with receiptMeta := { r.receiptMeta with cryptoSuite := "" } }
+  expect (TeeReceipt.isAccept (TeeReceipt.acceptReceipt policy emptySuite true))
+    "empty suite ≡ sha256+mock"
+
+  -- Fail-closed: Lean host rejects blake3+mock
+  let blake := { r with receiptMeta := { r.receiptMeta with cryptoSuite := suiteBlake3Mock } }
+  match TeeReceipt.acceptReceipt policy blake true with
+  | .reject reason =>
+    expect (reason.startsWith "unsupported crypto_suite=") "blake3 reject reason"
+  | .accept => throw (IO.userError "blake3+mock must be rejected by Lean host")
+
+  -- Fail-closed: unknown suite
+  let unknown := { r with receiptMeta := { r.receiptMeta with cryptoSuite := "nope" } }
+  expect (!TeeReceipt.isAccept (TeeReceipt.acceptReceipt policy unknown true))
+    "unknown suite rejected"
+
+  -- Proto preserves crypto_suite
+  let withSuite := { r with receiptMeta := { r.receiptMeta with cryptoSuite := suiteSha256Mock } }
+  let enc2 := Proto.TeeReceipt.encode withSuite
+  let dec2 ← IO.ofExcept (Proto.TeeReceipt.decode enc2)
+  expect (dec2.receiptMeta.cryptoSuite == suiteSha256Mock) "proto crypto_suite roundtrip"
+
   IO.println "receiptTests OK"

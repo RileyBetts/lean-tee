@@ -35,7 +35,14 @@ resultHash = SHA256( len-prefixed(
 
 Tampering with outputs without recomputing a valid proof and hash fails verification.
 
-## Profiles
+## Profiles / suites
 
-- **`lean-tee-v1`:** mock proof digest must match; suitable for CI and cheap reject demos.
-- **`lean-tee-v2`:** `proof_ref` commits to a host-verified SP1 proof; AcceptReceipt must not accept on client `proof_ok` alone.
+- **`lean-tee-v1` / `sha256+mock`:** mock proof digest; CI and cheap reject demos.
+- **`lean-tee-v2` / `sha256+sp1`:** SP1 host-verified `proof_ref`; never accept on client `proof_ok` alone. **Production default** (see [ENTERPRISE.md](ENTERPRISE.md) / [SLA.md](SLA.md)).
+- **`blake3+mock`:** optional hash agility; verify with `lean_tee_receipt` (see [CRYPTO.md](CRYPTO.md)).
+
+Unknown `crypto_suite` values fail closed.
+
+## Multi-guest
+
+Only registered first-party `guest_id`s are executable. Unknown/disabled guests fail closed. Distinct `codeHash` per guest (see [API.md](API.md)).

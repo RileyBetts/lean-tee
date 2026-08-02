@@ -24,14 +24,20 @@ jobs:
       - uses: leanprover/lean-action@v1
         with:
           build: false
-      - name: Build + standalone demo
+      - name: Build + demos
         working-directory: lean-tee
         run: |
           set -euo pipefail
-          lake build receiptTests teeServer teeClient teeLoopback goldenVectors
+          lake build receiptTests teeServer teeClient teeLoopback goldenVectors adversarialMatrix guestRegistry rustProveLoopback
           ./.lake/build/bin/receiptTests
           ./.lake/build/bin/goldenVectors
+          ./.lake/build/bin/guestRegistry
           bash scripts/standalone_demo.sh
+          bash scripts/adversarial_matrix_demo.sh
+          bash scripts/action_matrix_demo.sh
+          bash scripts/enterprise_control_demo.sh
+          bash scripts/cross_impl_golden_demo.sh
+          bash scripts/prove_mock_loopback_demo.sh
 
   rust-mock:
     runs-on: ubuntu-latest

@@ -46,6 +46,7 @@ def ReceiptMeta.encode (m : LeanTee.ReceiptMeta) : ByteArray :=
     if !m.version.isEmpty then acc := Proto.Wire.encodeString acc 1 m.version
     if !m.domain.isEmpty then acc := Proto.Wire.encodeString acc 2 m.domain
     if !m.sinkId.isEmpty then acc := Proto.Wire.encodeString acc 3 m.sinkId
+    if !m.cryptoSuite.isEmpty then acc := Proto.Wire.encodeString acc 4 m.cryptoSuite
     return acc
 
 def ReceiptMeta.decode (b : ByteArray) : Except String LeanTee.ReceiptMeta := do
@@ -54,6 +55,7 @@ def ReceiptMeta.decode (b : ByteArray) : Except String LeanTee.ReceiptMeta := do
     version := (Proto.Wire.fieldString? fields 1).getD "v1"
     domain := (Proto.Wire.fieldString? fields 2).getD "lean-tee/v1"
     sinkId := (Proto.Wire.fieldString? fields 3).getD ""
+    cryptoSuite := (Proto.Wire.fieldString? fields 4).getD ""
   }
 
 def TeeReceipt.encode (r : LeanTee.TeeReceipt) : ByteArray :=
@@ -154,15 +156,22 @@ def GetReceiptRequest.decode (b : ByteArray) : Except String GetReceiptRequest :
 
 structure MeasureRequest where
   configHash : ByteArray := ByteArray.empty
+  guestId : ByteArray := ByteArray.empty
   deriving Inhabited
 
 def MeasureRequest.encode (m : MeasureRequest) : ByteArray :=
-  if m.configHash.isEmpty then ByteArray.empty
-  else Proto.Wire.encodeBytes ByteArray.empty 1 m.configHash
+  Id.run do
+    let mut acc := ByteArray.empty
+    if !m.configHash.isEmpty then acc := Proto.Wire.encodeBytes acc 1 m.configHash
+    if !m.guestId.isEmpty then acc := Proto.Wire.encodeBytes acc 2 m.guestId
+    return acc
 
 def MeasureRequest.decode (b : ByteArray) : Except String MeasureRequest := do
   let fields ← Proto.Wire.decodeFields (Bytes.Slice.ofByteArray b)
-  return { configHash := (Proto.Wire.fieldBytes? fields 1).getD ByteArray.empty }
+  return {
+    configHash := (Proto.Wire.fieldBytes? fields 1).getD ByteArray.empty
+    guestId := (Proto.Wire.fieldBytes? fields 2).getD ByteArray.empty
+  }
 
 structure MeasureResponse where
   measurement : LeanTee.Measurement := { codeHash := ByteArray.empty, configHash := ByteArray.empty }

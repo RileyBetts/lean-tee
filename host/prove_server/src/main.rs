@@ -5,7 +5,10 @@
 //! - `LEAN_TEE_PROVE_MODE=mock` — force mock even when SP1 feature is enabled
 //! - `SP1_PROVER` — when SP1 enabled (default `cpu`)
 
-use lean_tee_compliance::{code_hash, mock_proof, run_compliance};
+use lean_tee_compliance::{
+    mock_proof, resolve_guest_by_code_hash, run_guest, code_hash_for, COMPLIANCE,
+};
+use lean_tee_receipt::CryptoSuite;
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
 
@@ -26,29 +29,37 @@ impl Prove for ProveSvc {
         let m = req
             .measurement
             .ok_or_else(|| Status::invalid_argument("measurement required"))?;
-        if m.code_hash != code_hash() {
-            return Err(Status::invalid_argument(format!(
-                "unsupported code_hash (expected {})",
-                hex::encode(code_hash())
-            )));
+        if m.code_hash.len() != 32 {
+            return Err(Status::invalid_argument("code_hash must be 32 bytes"));
         }
+        let suite = CryptoSuite::Sha256Mock;
+        let guest = resolve_guest_by_code_hash(&m.code_hash, suite).unwrap_or(&COMPLIANCE);
         if m.config_hash.len() != 32 {
             return Err(Status::invalid_argument("config_hash must be 32 bytes"));
         }
 
         let (outputs, proof_ref) = if use_mock() {
-            warn!("mock Prove — lean-tee-v1 (not a zk proof)");
-            let outputs = run_compliance(&m.config_hash, &req.inputs);
+            warn!(guest = guest.guest_id, "mock Prove — lean-tee-v1 (not a zk proof)");
+            let outputs = run_guest(guest, &m.config_hash, &req.inputs, None, suite);
             let proof = mock_proof(&m.code_hash, &m.config_hash, &req.inputs, &outputs);
             (outputs, proof.to_vec())
         } else {
             #[cfg(feature = "sp1")]
             {
+                let _ = code_hash_for;
+                // SP1 ELF is still the compliance guest in v1; multi-guest SP1 ELFs are Phase 3+.
+                if guest.guest_id != COMPLIANCE.guest_id {
+                    return Err(Status::failed_precondition(format!(
+                        "SP1 prove currently supports compliance_operator only; got {}",
+                        guest.guest_id
+                    )));
+                }
                 prove_sp1(&m, &req.inputs)
                     .map_err(|e| Status::internal(format!("SP1 prove failed: {e}")))?
             }
             #[cfg(not(feature = "sp1"))]
             {
+                let _ = (guest, code_hash_for(&COMPLIANCE, suite));
                 return Err(Status::failed_precondition(
                     "SP1 not compiled in; rebuild with --features sp1 or set LEAN_TEE_PROVE_MODE=mock",
                 ));

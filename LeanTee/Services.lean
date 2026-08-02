@@ -4,6 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Std.Data.HashMap
 import LeanTee.Guest
+import LeanTee.Guests.Registry
+import LeanTee.Control
 import LeanTee.Receipt
 import LeanTee.Proto
 import LeanTee.Grpc
@@ -30,16 +32,15 @@ def JobStore.get? (self : JobStore) (id : String) : IO (Option TeeReceipt) := do
   let m ← self.jobs.get
   return m[id]?
 
-/-- Guest registry: guest_id UTF-8 → code hash (v1: one compliance operator). -/
 def resolveGuestCodeHash (guestId : ByteArray) : Except String ByteArray :=
+  Guests.resolveCodeHash guestId
+
+def resolveGuest (guestId : ByteArray) : Except String Guests.GuestDesc :=
   let id :=
     match String.fromUTF8? guestId with
-    | some s => Guest.trimStr s
+    | some s => s
     | none => ""
-  if id.isEmpty || id == Guest.demoGuestId || id == "compliance_operator/v1" then
-    .ok Guest.demoCodeHash
-  else
-    .error s!"unknown guest_id={id}"
+  Guests.resolve id
 
 /-- Optional multi-entry policy from `LEAN_TEE_POLICY_FILE` (hex lines `codeHex configHex`). -/
 structure ServerPolicy where
@@ -66,7 +67,20 @@ def loadPolicyFile (path : String) : IO ServerPolicy := do
     | _ => pure ()
   return { entries }
 
-/-- Pluggable AnchorSink backends. -/
+/-- Enterprise runtime knobs (from env in ServerMain). -/
+structure ServerControl where
+  apiKey : Option String := none
+  presentedKey : Option String := none
+  tenant : String := "demo"
+  acl : Control.AclFile := {}
+  auditPath : Option String := none
+  jobDir : Option String := none
+  maxRps : Option Nat := none
+  maxInflight : Option Nat := none
+  metricsEnabled : Bool := false
+  quotas : Control.QuotaState
+  metrics : Control.Metrics
+
 inductive SinkBackend where
   | memory (buf : IO.Ref (Array TeeReceipt))
   | print
@@ -82,15 +96,10 @@ def SinkBackend.submit (b : SinkBackend) (r : TeeReceipt) : IO (String × String
     IO.println s!"AnchorSink receipt resultHash={Guest.hexEncode r.resultHash}"
     pure ("sink-print", "printed")
   | .webhook url =>
-    -- v1: record intent only (no HTTP client in Lean); message carries URL.
     pure ("sink-webhook", s!"queued url={url}")
 
-/-- Local mock prove with raw rules for `allow=`. -/
-def proveLocal (rulesRaw : ByteArray) (req : ProveRequest) : ProveResponse :=
-  let outputs := Guest.runCompliance {
-    rulesHash := req.measurement.configHash
-    rulesRaw
-  } req.inputs
+def proveLocal (g : Guests.GuestDesc) (rulesRaw : ByteArray) (req : ProveRequest) : ProveResponse :=
+  let outputs := Guests.runGuest g req.measurement.configHash rulesRaw req.inputs
   let proof := Guest.mockProof req.measurement req.inputs outputs
   { outputs, proofRef := proof }
 
@@ -105,79 +114,115 @@ def buildReceipt (m : Measurement) (inputs outputs nonce proofRef : ByteArray) :
     resultHash := ByteArray.empty
     nonce
     proofRef
-    receiptMeta := { version := "v1", domain := "lean-tee/v1", sinkId := "lean-tee" }
+    receiptMeta := {
+      version := "v1"
+      domain := "lean-tee/v1"
+      sinkId := "lean-tee"
+      cryptoSuite := suiteSha256Mock
+    }
   }
 
 def handleMeasure (req : MeasureRequest) : MeasureResponse × Grpc.Status :=
-  match resolveGuestCodeHash ByteArray.empty with
+  match resolveGuestCodeHash req.guestId with
   | .error e => ({ measurement := default }, Grpc.Status.invalidArgument e)
   | .ok codeHash =>
     let m : Measurement := { codeHash, configHash := Hash.sha256 req.configHash }
     ({ measurement := m }, Grpc.Status.ok)
 
-def handleExecute (store : JobStore) (prove? : Option ProveStub) (sink? : Option SinkBackend)
-    (req : ExecuteRequest) : IO (ExecuteResponse × Grpc.Status) := do
-  let codeHash ← match resolveGuestCodeHash req.guestId with
+def handleExecute (store : JobStore) (ctrl : ServerControl) (prove? : Option ProveStub)
+    (sink? : Option SinkBackend) (req : ExecuteRequest) : IO (ExecuteResponse × Grpc.Status) := do
+  match Control.checkApiKey ctrl.apiKey ctrl.presentedKey with
+  | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.unauthenticated e)
+  | .ok () => pure ()
+  let g ← match resolveGuest req.guestId with
     | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.invalidArgument e)
-    | .ok h => pure h
-  let m : Measurement := { codeHash, configHash := Hash.sha256 req.configHash }
-  let proveResp ← match prove? with
-    | none => pure (proveLocal req.configHash { measurement := m, inputs := req.inputs })
-    | some stub =>
-      match ← stub.Prove { measurement := m, inputs := req.inputs } with
-      | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.internal e)
-      | .ok r => pure r
-  let nonce :=
-    if req.nonce.isEmpty then Hash.sha256 (Hash.concatLenPrefixed #[req.inputs, m.configHash])
-    else req.nonce
-  let receipt := buildReceipt m req.inputs proveResp.outputs nonce proveResp.proofRef
-  let jobId := Guest.hexEncode (Hash.sha256 (Hash.concatLenPrefixed #[nonce, receipt.resultHash]))
-  store.put jobId receipt
-  if req.submitToSink then
-    match sink? with
-    | none => pure ()
-    | some sink =>
-      let _ ← sink.submit receipt
-      pure ()
-  return ({ jobId, receipt := some receipt, status := "done" }, Grpc.Status.ok)
+    | .ok g => pure g
+  if !Control.aclAllows ctrl.acl ctrl.tenant g.guestId then
+    return ({ jobId := "", status := s!"error:forbidden guest_id={g.guestId}" }, Grpc.Status.permissionDenied "acl")
+  match ← Control.checkQuota ctrl.quotas ctrl.maxRps ctrl.maxInflight with
+  | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.resourceExhausted e)
+  | .ok () => pure ()
+  Control.beginRequest ctrl.quotas
+  try
+    Control.Metrics.bumpExecute ctrl.metrics
+    let m : Measurement := { codeHash := g.codeHash, configHash := Hash.sha256 req.configHash }
+    let proveResp ← match prove? with
+      | none => pure (proveLocal g req.configHash { measurement := m, inputs := req.inputs })
+      | some stub =>
+        match ← stub.Prove { measurement := m, inputs := req.inputs } with
+        | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.internal e)
+        | .ok r => pure r
+    let nonce :=
+      if req.nonce.isEmpty then Hash.sha256 (Hash.concatLenPrefixed #[req.inputs, m.configHash])
+      else req.nonce
+    let receipt := buildReceipt m req.inputs proveResp.outputs nonce proveResp.proofRef
+    let jobId := Guest.hexEncode (Hash.sha256 (Hash.concatLenPrefixed #[nonce, receipt.resultHash]))
+    store.put jobId receipt
+    if let some dir := ctrl.jobDir then
+      Control.writeJobFile dir jobId (Guest.hexEncode receipt.resultHash)
+    if req.submitToSink then
+      match sink? with
+      | none => pure ()
+      | some sink =>
+        let _ ← sink.submit receipt
+        pure ()
+    if let some path := ctrl.auditPath then
+      Control.auditLine path s!"\{ \"event\":\"execute\", \"guest_id\":\"{g.guestId}\", \"job_id\":\"{jobId}\", \"tenant\":\"{ctrl.tenant}\" }"
+    Control.Metrics.logIfEnabled ctrl.metrics ctrl.metricsEnabled
+    return ({ jobId, receipt := some receipt, status := "done" }, Grpc.Status.ok)
+  finally
+    Control.endRequest ctrl.quotas
 
-def handleGetReceipt (store : JobStore) (req : GetReceiptRequest) :
+def handleGetReceipt (store : JobStore) (ctrl : ServerControl) (req : GetReceiptRequest) :
     IO (ExecuteResponse × Grpc.Status) := do
   match ← store.get? req.jobId with
-  | none => return ({ jobId := req.jobId, status := "pending" }, Grpc.Status.ok)
   | some r => return ({ jobId := req.jobId, receipt := some r, status := "done" }, Grpc.Status.ok)
+  | none =>
+    match ctrl.jobDir with
+    | some dir =>
+      if ← Control.jobFileExists dir req.jobId then
+        return ({ jobId := req.jobId, status := "done" }, Grpc.Status.ok)
+      else
+        return ({ jobId := req.jobId, status := "pending" }, Grpc.Status.ok)
+    | none => return ({ jobId := req.jobId, status := "pending" }, Grpc.Status.ok)
 
-/--
-AcceptReceipt: measurement policy + resultHash + proof.
-
-For lean-tee-v1 mock proofs, Lean verifies the mock digest.
-For non-mock proofs (lean-tee-v2), `proofOk` is accepted only when the mock
-check fails *and* the caller is the host verify path (`LEAN_TEE_TRUST_PROOF_OK=1`
-set by trusted host adapters — not for untrusted clients). Default: reject
-non-mock unless mock verifies.
--/
-def handleAccept (policy : ServerPolicy) (trustProofOk : Bool) (req : AcceptReceiptRequest) :
-    AcceptReceiptResponse × Grpc.Status :=
-  let reqPolicy : MeasurementPolicy := {
-    allowed := #[{ codeHash := req.policyCodeHash, configHash := req.policyConfigHash }]
-  }
-  let measurementOk :=
-    (req.policyCodeHash.isEmpty && req.policyConfigHash.isEmpty && policy.allows req.receipt.measurement)
-    || reqPolicy.allows req.receipt.measurement
-    || (policy.entries.isEmpty && !req.policyCodeHash.isEmpty && reqPolicy.allows req.receipt.measurement)
-  let mockOk := verifyMockProofOk req.receipt
-  let proofOk :=
-    if mockOk then true
-    else if trustProofOk then req.proofOk
-    else false
-  if !measurementOk then
-    ({ accepted := false, reason := "measurement not in policy" }, Grpc.Status.ok)
-  else if !req.receipt.hashMatches then
-    ({ accepted := false, reason := "resultHash mismatch" }, Grpc.Status.ok)
-  else if !proofOk then
-    ({ accepted := false, reason := "proof invalid" }, Grpc.Status.ok)
-  else
-    ({ accepted := true, reason := "" }, Grpc.Status.ok)
+def handleAccept (policy : ServerPolicy) (ctrl : ServerControl) (trustProofOk : Bool)
+    (req : AcceptReceiptRequest) : IO (AcceptReceiptResponse × Grpc.Status) := do
+  match Control.checkApiKey ctrl.apiKey ctrl.presentedKey with
+  | .error e => return ({ accepted := false, reason := e }, Grpc.Status.unauthenticated e)
+  | .ok () => pure ()
+  let suite := normalizeCryptoSuite req.receipt.receiptMeta.cryptoSuite
+  let resp :=
+    if !leanHostSupportsSuite suite then
+      ({ accepted := false
+         reason := s!"unsupported crypto_suite={suite} (Lean host; use lean_tee_receipt for blake3+mock)"
+       } : AcceptReceiptResponse)
+    else
+      let reqPolicy : MeasurementPolicy := {
+        allowed := #[{ codeHash := req.policyCodeHash, configHash := req.policyConfigHash }]
+      }
+      let measurementOk :=
+        (req.policyCodeHash.isEmpty && req.policyConfigHash.isEmpty && policy.allows req.receipt.measurement)
+        || reqPolicy.allows req.receipt.measurement
+        || (policy.entries.isEmpty && !req.policyCodeHash.isEmpty && reqPolicy.allows req.receipt.measurement)
+      let mockOk := verifyMockProofOk req.receipt
+      let proofOk :=
+        if mockOk then true
+        else if trustProofOk then req.proofOk
+        else false
+      if !measurementOk then
+        { accepted := false, reason := "measurement not in policy" }
+      else if !req.receipt.hashMatches then
+        { accepted := false, reason := "resultHash mismatch" }
+      else if !proofOk then
+        { accepted := false, reason := "proof invalid" }
+      else
+        { accepted := true, reason := "" }
+  Control.Metrics.bumpAccept ctrl.metrics resp.accepted
+  if let some path := ctrl.auditPath then
+    Control.auditLine path s!"\{ \"event\":\"accept\", \"accepted\":{resp.accepted}, \"reason\":\"{resp.reason}\", \"tenant\":\"{ctrl.tenant}\", \"result_hash_hex\":\"{Guest.hexEncode req.receipt.resultHash}\" }"
+  Control.Metrics.logIfEnabled ctrl.metrics ctrl.metricsEnabled
+  return (resp, Grpc.Status.ok)
 
 def handleSubmit (sink : SinkBackend) (req : SubmitRequest) :
     IO (SubmitAck × Grpc.Status) := do
@@ -185,17 +230,21 @@ def handleSubmit (sink : SinkBackend) (req : SubmitRequest) :
   return ({ ok := true, ref, message }, Grpc.Status.ok)
 
 def handleProve (req : ProveRequest) : ProveResponse × Grpc.Status :=
-  -- Without raw rules on ProveRequest, use empty rulesRaw → default allow list.
-  (proveLocal ByteArray.empty req, Grpc.Status.ok)
+  -- Prove without guest_id: map codeHash back to builtin guest or compliance.
+  let g :=
+    match Guests.builtin.find? (fun x => Hash.bytesEq x.codeHash req.measurement.codeHash) with
+    | some g => g
+    | none => Guests.compliance
+  (proveLocal g ByteArray.empty req, Grpc.Status.ok)
 
 def mkIntegratedServer (store : JobStore) (sink : SinkBackend) (policy : ServerPolicy)
-    (trustProofOk : Bool) (includeProve : Bool := true) : Grpc.Server :=
+    (ctrl : ServerControl) (trustProofOk : Bool) (includeProve : Bool := true) : Grpc.Server :=
   Id.run do
     let mut s := Grpc.Server.empty
-    s := registerTeeExecute s (handleExecute store none (some sink))
-    s := registerTeeGetReceipt s (handleGetReceipt store)
+    s := registerTeeExecute s (handleExecute store ctrl none (some sink))
+    s := registerTeeGetReceipt s (handleGetReceipt store ctrl)
     s := registerTeeMeasure s fun req => pure (handleMeasure req)
-    s := registerVerifyAccept s fun req => pure (handleAccept policy trustProofOk req)
+    s := registerVerifyAccept s (handleAccept policy ctrl trustProofOk)
     s := registerAnchorSinkSubmit s (handleSubmit sink)
     if includeProve then
       s := registerProve s fun req => pure (handleProve req)

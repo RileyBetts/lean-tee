@@ -1,0 +1,18 @@
+{
+  "tenants": [
+    {
+      "tenant_id": "demo",
+      "api_key_env": "LEAN_TEE_API_KEY",
+      "guests": [
+        "compliance_operator",
+        "voting_operator",
+        "onboarding_operator",
+        "trade_operator"
+      ]
+    },
+    {
+      "tenant_id": "votes-only",
+      "guests": ["voting_operator"]
+    }
+  ]
+}

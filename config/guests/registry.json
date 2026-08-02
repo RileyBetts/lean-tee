@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "default_guest_id": "compliance_operator",
+  "guests": [
+    {
+      "guest_id": "compliance_operator",
+      "code_id": "lean-tee/compliance_operator/v1",
+      "enabled": true,
+      "default_profile": "lean-tee-v1",
+      "actions": [
+        "vote.yes",
+        "vote.no",
+        "supplier.register",
+        "purchaser.approve",
+        "purchaser.reject",
+        "trade.submit"
+      ],
+      "config_schema": "allow= line optional; UTF-8 rules bytes hashed into configHash"
+    },
+    {
+      "guest_id": "voting_operator",
+      "code_id": "lean-tee/voting_operator/v1",
+      "enabled": true,
+      "default_profile": "lean-tee-v1",
+      "actions": ["vote.yes", "vote.no"],
+      "config_schema": "UTF-8 ballot rules; optional allow= within voting actions"
+    },
+    {
+      "guest_id": "onboarding_operator",
+      "code_id": "lean-tee/onboarding_operator/v1",
+      "enabled": true,
+      "default_profile": "lean-tee-v1",
+      "actions": ["supplier.register", "purchaser.approve", "purchaser.reject"],
+      "config_schema": "UTF-8 onboarding rules; optional allow= within onboarding actions"
+    },
+    {
+      "guest_id": "trade_operator",
+      "code_id": "lean-tee/trade_operator/v1",
+      "enabled": true,
+      "default_profile": "lean-tee-v1",
+      "actions": ["trade.submit"],
+      "config_schema": "UTF-8 trade rules; optional allow= for trade.submit"
+    }
+  ]
+}

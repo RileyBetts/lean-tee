@@ -1,14 +1,40 @@
 # lean-tee API
 
 Wire contract: [`proto/lean_tee/v1/tee.proto`](../proto/lean_tee/v1/tee.proto)  
-Transport: [lean-grpc](https://github.com/RileyBetts/lean-grpc) (h2c locally; TLS/mTLS for real adapters)
+Transport: [lean-grpc](https://github.com/RileyBetts/lean-grpc) (h2c locally; TLS/mTLS for real adapters — see [ENTERPRISE.md](ENTERPRISE.md))
 
-## Profiles
+## Profiles / CryptoSuites
 
-| Profile | `proof_ref` | Accept |
+| Profile / suite | `proof_ref` | Accept |
 | --- | --- | --- |
-| `lean-tee-v1` | Mock: `SHA256(len-prefixed("lean-tee/mock-proof/v1", code, config, inputs, outputs))` | Hash + mock equality |
-| `lean-tee-v2` | `SHA256(bincode(SP1 proof))` after host prove+verify | Host must have verified SP1; client `proof_ok` alone is insufficient |
+| `lean-tee-v1` / `sha256+mock` (default for CI) | Mock SHA-256 digest | Hash + mock equality |
+| `lean-tee-v2` / `sha256+sp1` (production default) | `SHA256(bincode(SP1 proof))` after host prove+verify | Host must have verified SP1 |
+| `blake3+mock` | Mock BLAKE3 digest | Via `lean_tee_receipt` |
+
+See [CRYPTO.md](CRYPTO.md). `ReceiptMeta.crypto_suite` carries the suite id (empty ⇒ `sha256+mock`).
+
+## GuestDescriptor
+
+Normative fields (registry: [`config/guests/registry.json`](../config/guests/registry.json)):
+
+| Field | Meaning |
+| --- | --- |
+| `guest_id` | Wire key in `ExecuteRequest.guest_id` / `MeasureRequest.guest_id` (UTF-8). Empty ⇒ `compliance_operator`. |
+| `code_id` | Preimage of `codeHash` (`SHA256(code_id)` for sha256 suites). |
+| `codeHash` | `hash_suite(suite, code_id)` — measurement field. |
+| `config_schema` | How raw config bytes are interpreted (hashed into `configHash`). |
+| `actions` | Built-in allow prefixes for this guest (`action=<name>`). |
+| `default_profile` | `lean-tee-v1` or `lean-tee-v2`. |
+| `enabled` | Disabled guests fail closed (`unknown` / disabled). |
+
+| `guest_id` | `code_id` | Built-in actions |
+| --- | --- | --- |
+| `compliance_operator` | `lean-tee/compliance_operator/v1` | all six defaults (or `allow=` narrow) |
+| `voting_operator` | `lean-tee/voting_operator/v1` | `vote.yes`, `vote.no` |
+| `onboarding_operator` | `lean-tee/onboarding_operator/v1` | `supplier.register`, `purchaser.approve`, `purchaser.reject` |
+| `trade_operator` | `lean-tee/trade_operator/v1` | `trade.submit` |
+
+Unknown or disabled `guest_id` → error. Customers do **not** upload binaries (no BYO).
 
 ## Services
 
@@ -20,30 +46,28 @@ Transport: [lean-grpc](https://github.com/RileyBetts/lean-grpc) (h2c locally; TL
 | `lean_tee.v1.AnchorSink` | `Submit` |
 
 Lean stubs: `LeanTee.Grpc`. Pure accept logic: `LeanTee.TeeReceipt.acceptReceipt`.  
-Rust shared crypto: `lean_tee_receipt`.
+Rust shared crypto: `lean_tee_receipt`. Guests: `lean_tee_compliance` + registry.
 
 ## Field semantics (important)
 
 | Proto field | Meaning |
 | --- | --- |
 | `ExecuteRequest.config_hash` / `MeasureRequest.config_hash` | **Raw rules / config bytes**, not a precomputed digest. Server stores `configHash = SHA256(rules)` in the measurement. |
-| `ExecuteRequest.guest_id` | Guest registry key (UTF-8). Empty → default compliance operator. |
+| `ExecuteRequest.guest_id` / `MeasureRequest.guest_id` | Guest registry key (UTF-8). Empty → `compliance_operator`. |
 | `ExecuteRequest.inputs` | UTF-8 framing; see binding helpers below. |
-| `TeeReceipt.result_hash` | `SHA256(len-prefixed("lean-tee/v1", codeHash, configHash, inputs, outputs, nonce))` |
+| `TeeReceipt.result_hash` | Suite-domain length-prefixed hash over measurement + I/O + nonce |
 | `AcceptReceiptRequest.proof_ok` | Hint only for non-mock proofs; Verify re-checks mock locally and requires host-verified SP1 for v2. |
 | `AcceptReceiptRequest.policy_*` | Optional measurement allow-list entry; combined with server `LEAN_TEE_POLICY_FILE` |
 
-## Guest model
-
-Default guest: compliance operator (`codeHash = SHA256("lean-tee/compliance_operator/v1")`).
+## Guest model / rules
 
 **Rules bytes** (hashed into `configHash`) may include an allow-list line:
 
 ```
-allow=vote.yes,vote.no,supplier.register,purchaser.approve,purchaser.reject,trade.submit
+allow=vote.yes,vote.no
 ```
 
-If `allow=` is absent, the built-in default prefixes are used. Actions not listed → `decision=deny` (receipt still well-formed).
+`allow=` may only **narrow** within the guest’s built-in actions. Actions outside the guest surface → `decision=deny` (receipt still well-formed).
 
 ### Interaction binding (for Anchor / multi-party)
 
@@ -61,6 +85,6 @@ Helper: `lean_tee_receipt::bind_interaction` / Python `bind_interaction`. Downst
 
 | Client | Path |
 | --- | --- |
-| CLI | `lake build teeClient` → `.lake/build/bin/teeClient` |
-| Python | `clients/python` |
-| Rust | `clients/rust` (`lean_tee_client`) |
+| CLI | `lake build teeClient` → `.lake/build/bin/teeClient [guest_id]` |
+| Python | `clients/python` — `execute_action(..., guest_id=...)` |
+| Rust | `clients/rust` (`lean_tee_client`) — `execute_action(..., guest_id)` |

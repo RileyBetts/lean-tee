@@ -17,6 +17,8 @@ message ReceiptMeta {
   string version = 1;
   string domain = 2;
   string sink_id = 3;
+  // Empty => sha256+mock (lean-tee-v1). See docs/CRYPTO.md.
+  string crypto_suite = 4;
 }
 
 message TeeReceipt {
@@ -48,6 +50,7 @@ message GetReceiptRequest {
 
 message MeasureRequest {
   bytes config_hash = 1;
+  bytes guest_id = 2;       // empty => compliance_operator
 }
 
 message MeasureResponse {

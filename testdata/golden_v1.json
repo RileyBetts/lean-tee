@@ -1,4 +1,5 @@
 {
+  "crypto_suite": "sha256+mock",
   "code_hash_hex": "6c3d3e4ff28fd6b2ce6730c132ef9a34e9d8ab4e3762ba48cca8d3469cce98a0",
   "config_hash_hex": "187803abca8aa9031f0938cb51fb763efb8bdfa46cfe088791d67c0370cae37e",
   "inputs_hex": "616374696f6e3d766f74652e7965730a696e746572616374696f6e3d676f6c64656e2d310a",

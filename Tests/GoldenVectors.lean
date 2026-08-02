@@ -38,4 +38,6 @@ def main : IO Unit := do
   let gotProof := LeanTee.Guest.hexEncode proof
   if gotProof ≠ expectProof then
     throw (IO.userError s!"proof mismatch got={gotProof}")
+  if receipt.receiptMeta.cryptoSuite ≠ LeanTee.suiteSha256Mock then
+    throw (IO.userError s!"crypto_suite got={receipt.receiptMeta.cryptoSuite}")
   IO.println "goldenVectors OK"

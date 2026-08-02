@@ -2,7 +2,22 @@
 
 ## What this is
 
-A **standalone integrity-first zkTEE**: run a measured guest, bind public I/O into a hashed receipt, prove (mock or SP1), and verify so downstream systems (e.g. Anchor Chain Strict Mode) can accept or reject evidence cheaply.
+A **portable integrity TEE compute platform**: run a **registered, measured guest**, bind public I/O into a hashed receipt, prove (mock or SP1), and verify so downstream systems can accept honest results or cheaply reject forged evidence.
+
+Not a confidentiality enclave (no Nitro / sealed memory). Positioning vs AWS Nitro: **integrity + cheap reject for public computation**, not secret isolation.
+
+## Multi-guest registry
+
+First-party operators are selected by `ExecuteRequest.guest_id` (see [API.md](API.md) GuestDescriptor). Empty `guest_id` ⇒ `compliance_operator`.
+
+| `guest_id` | Measurement `CODE_ID` |
+| --- | --- |
+| `compliance_operator` | `lean-tee/compliance_operator/v1` |
+| `voting_operator` | `lean-tee/voting_operator/v1` |
+| `onboarding_operator` | `lean-tee/onboarding_operator/v1` |
+| `trade_operator` | `lean-tee/trade_operator/v1` |
+
+Registry file: [`config/guests/registry.json`](../config/guests/registry.json) (`LEAN_TEE_GUESTS_FILE`).
 
 ## Guarantees by profile
 
@@ -10,21 +25,26 @@ A **standalone integrity-first zkTEE**: run a measured guest, bind public I/O in
 | --- | --- | --- |
 | `resultHash` binding | Yes | Yes |
 | Proof | Deterministic mock digest | SP1 Hypercube proof commitment |
-| Suitable for | CI, demos, cheap reject | Integrity under SP1 TCB |
+| Suitable for | CI, demos, cheap reject | **Production integrity** (default for enterprise) |
 | Confidentiality | No | No |
+
+## Enterprise packaging
+
+See [ENTERPRISE.md](ENTERPRISE.md) and [SLA.md](SLA.md): mTLS (proxy), tenant ACL, API keys, audit JSONL, quotas, metrics, durable job store. Mock prove remains **CI/dev only**.
 
 ## Non-goals
 
-- Nitro / sealed confidentiality
+- Nitro / SEV / TDX / sealed confidentiality
+- Customer-uploaded ELF/Wasm (BYO guest)
 - Embedding lean-grpc into consumer Lake graphs (call over the wire or use `lean_tee_receipt`)
 - Full sail-riscv-lean / sp1-lean end-to-end formalization in v1.0
-- Guaranteed delivery if the prover host censors
+- Guaranteed delivery if the prover host censors (see [SLA.md](SLA.md))
 
 ## Consumers
 
 1. **Direct** — `teeServer` + clients (`teeClient`, Python, Rust)
 2. **Library** — depend on `lean_tee_receipt` for hash/mock verify without running Lean
-3. **Anchor Strict** — RegisterCompliance fields map to receipt hex; optional live Execute via `LEAN_TEE_ADDR`
+3. **Anchor Strict** — RegisterCompliance fields map to receipt hex; multi-guest measurements (see [ANCHOR_MULTI_GUEST.md](ANCHOR_MULTI_GUEST.md))
 
 ## Versioning
 
@@ -35,3 +55,10 @@ A **standalone integrity-first zkTEE**: run a measured guest, bind public I/O in
 ## lean-grpc pin
 
 Require sibling checkout at **https://github.com/RileyBetts/lean-grpc/tree/v1.0.0** as `../lean-grpc`. GitHub Actions checks out that tag beside this repo.
+
+## Roadmap (integrity multi-guest)
+
+1. Declarative guest registry + four first-party operators
+2. Enterprise control plane (ACL, audit, quotas, mTLS docs)
+3. Production `lean-tee-v2` prove default + durable jobs
+4. SDK `guest_id` + Anchor multi-guest packs

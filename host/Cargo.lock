@@ -1818,6 +1818,7 @@ dependencies = [
 name = "lean_tee_receipt"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "hex",
  "serde_json",
  "sha2",

@@ -1,17 +1,20 @@
-//! Compliance operator — aligned with `LeanTee.Guest`.
+//! Multi-guest compliance operators — aligned with `LeanTee.Guests`.
 //! Receipt crypto lives in `lean_tee_receipt`.
 
-use lean_tee_receipt::{
-    action_allowed_with, concat_len_prefixed, resolve_allow_prefixes, sha256,
-};
+mod guests;
+
+pub use guests::*;
+
+use lean_tee_receipt::CryptoSuite;
 
 pub use lean_tee_receipt::{
-    bind_interaction, code_hash, mock_proof, result_hash, verify_mock_proof, verify_result_hash,
-    CODE_ID, DEFAULT_ALLOW_PREFIXES, MOCK_PROOF_DOMAIN, PROFILE_V1, PROFILE_V2, RESULT_DOMAIN,
+    accept_mock_receipt, bind_interaction, code_hash, code_hash_suite, mock_proof, mock_proof_suite,
+    result_hash, result_hash_suite, verify_mock_proof, verify_result_hash, CODE_ID,
+    DEFAULT_ALLOW_PREFIXES, MOCK_PROOF_DOMAIN, PROFILE_V1, PROFILE_V2, RESULT_DOMAIN,
+    SUITE_BLAKE3_MOCK, SUITE_SHA256_MOCK, SUITE_SHA256_SP1,
 };
 
-/// Run compliance. `rules_raw` is optional raw rules (for `allow=`); `rules_hash` is
-/// always the measurement config digest used in the reason line.
+/// Back-compat: compliance_operator with optional allow= rules.
 pub fn run_compliance(rules_hash: &[u8], inputs: &[u8]) -> Vec<u8> {
     run_compliance_with_rules(rules_hash, inputs, None)
 }
@@ -21,13 +24,29 @@ pub fn run_compliance_with_rules(
     inputs: &[u8],
     rules_raw: Option<&[u8]>,
 ) -> Vec<u8> {
-    let text = std::str::from_utf8(inputs).unwrap_or("");
-    let prefixes = resolve_allow_prefixes(rules_raw, inputs);
-    let pref_refs: Vec<&str> = prefixes.iter().map(|s| s.as_str()).collect();
-    let allowed = action_allowed_with(&pref_refs, text);
-    let decision = if allowed { "allow" } else { "deny" };
-    let reason = sha256(&concat_len_prefixed(&[rules_hash, inputs]));
-    format!("decision={decision}\nreason={}\n", hex::encode(reason)).into_bytes()
+    run_guest(
+        &COMPLIANCE,
+        rules_hash,
+        inputs,
+        rules_raw,
+        CryptoSuite::Sha256Mock,
+    )
+}
+
+pub fn run_guest_id(
+    guest_id: &str,
+    rules_hash: &[u8],
+    inputs: &[u8],
+    rules_raw: Option<&[u8]>,
+) -> Result<Vec<u8>, String> {
+    let g = resolve_guest(guest_id)?;
+    Ok(run_guest(
+        g,
+        rules_hash,
+        inputs,
+        rules_raw,
+        CryptoSuite::Sha256Mock,
+    ))
 }
 
 #[cfg(test)]
@@ -59,5 +78,14 @@ mod tests {
         assert!(String::from_utf8(deny).unwrap().starts_with("decision=deny\n"));
         let allow = run_compliance_with_rules(&rh, b"action=trade.submit\n", Some(rules));
         assert!(String::from_utf8(allow).unwrap().starts_with("decision=allow\n"));
+    }
+
+    #[test]
+    fn per_guest_surfaces() {
+        let rh = sha256(b"rules");
+        let v = run_guest_id("voting_operator", &rh, b"action=vote.yes\n", None).unwrap();
+        assert!(String::from_utf8(v).unwrap().starts_with("decision=allow\n"));
+        let t = run_guest_id("trade_operator", &rh, b"action=vote.yes\n", None).unwrap();
+        assert!(String::from_utf8(t).unwrap().starts_with("decision=deny\n"));
     }
 }

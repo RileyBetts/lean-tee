@@ -3,9 +3,10 @@ name = "lean_tee_receipt"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "lean-tee receipt crypto: resultHash, mock proof, binding helpers (Anchor-linkable)"
+description = "lean-tee receipt crypto: CryptoSuites, resultHash, mock proof (Anchor-linkable)"
 
 [dependencies]
+blake3 = "1.5"
 hex = "0.4"
 sha2 = "0.10"
 

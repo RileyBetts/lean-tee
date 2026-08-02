@@ -7,6 +7,19 @@ import LeanTee.Measurement
 
 namespace LeanTee
 
+/-- Registered CryptoSuite ids (see docs/CRYPTO.md). Empty meta ⇒ sha256+mock. -/
+def suiteSha256Mock : String := "sha256+mock"
+def suiteSha256Sp1 : String := "sha256+sp1"
+def suiteBlake3Mock : String := "blake3+mock"
+
+def normalizeCryptoSuite (s : String) : String :=
+  if s.isEmpty then suiteSha256Mock else s
+
+/-- Suites the Lean host can fully recompute. -/
+def leanHostSupportsSuite (s : String) : Bool :=
+  let n := normalizeCryptoSuite s
+  n == suiteSha256Mock || n == suiteSha256Sp1
+
 structure PublicIO where
   inputs : ByteArray
   outputs : ByteArray
@@ -16,10 +29,11 @@ structure ReceiptMeta where
   version : String
   domain : String
   sinkId : String
+  cryptoSuite : String := ""
   deriving Inhabited
 
 def ReceiptMeta.default : ReceiptMeta :=
-  { version := "v1", domain := "lean-tee/v1", sinkId := "" }
+  { version := "v1", domain := "lean-tee/v1", sinkId := "", cryptoSuite := suiteSha256Mock }
 
 structure TeeReceipt where
   measurement : Measurement
@@ -39,7 +53,7 @@ namespace TeeReceipt
 
 /--
 `resultHash = SHA256(domain || measurement || inputs || outputs || nonce)`
-with length-prefixed chunks.
+with length-prefixed chunks. Lean host path is SHA-256 suites only.
 -/
 def computeResultHash (m : Measurement) (io : PublicIO) (nonce : ByteArray) : ByteArray :=
   let body := Hash.concatLenPrefixed #[
@@ -53,14 +67,23 @@ def computeResultHash (m : Measurement) (io : PublicIO) (nonce : ByteArray) : By
   Hash.sha256 body
 
 def withComputedHash (r : TeeReceipt) : TeeReceipt :=
-  { r with resultHash := computeResultHash r.measurement r.publicIO r.nonce }
+  let rm :=
+    if r.receiptMeta.cryptoSuite.isEmpty then
+      { r.receiptMeta with cryptoSuite := suiteSha256Mock, domain := "lean-tee/v1" }
+    else r.receiptMeta
+  { r with
+    receiptMeta := rm
+    resultHash := computeResultHash r.measurement r.publicIO r.nonce }
 
 def hashMatches (r : TeeReceipt) : Bool :=
   Hash.bytesEq r.resultHash (computeResultHash r.measurement r.publicIO r.nonce)
 
-/-- Cheap accept/reject: measurement policy + resultHash binding + external proofOk. -/
+/-- Cheap accept/reject with suite fail-closed for Lean host. -/
 def acceptReceipt (policy : MeasurementPolicy) (r : TeeReceipt) (proofOk : Bool) : ReceiptDecision :=
-  if !policy.allows r.measurement then
+  let suite := normalizeCryptoSuite r.receiptMeta.cryptoSuite
+  if !leanHostSupportsSuite suite then
+    .reject s!"unsupported crypto_suite={suite} (Lean host; use lean_tee_receipt for blake3+mock)"
+  else if !policy.allows r.measurement then
     .reject "measurement not in policy"
   else if !r.hashMatches then
     .reject "resultHash mismatch"

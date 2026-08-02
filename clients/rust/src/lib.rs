@@ -37,10 +37,24 @@ pub async fn execute_action(
     action: &str,
     rules: &[u8],
 ) -> Result<pb::TeeReceipt, tonic::Status> {
+    execute_action_guest(client, action, rules, "").await
+}
+
+pub async fn execute_action_guest(
+    client: &mut TeeClient<Channel>,
+    action: &str,
+    rules: &[u8],
+    guest_id: &str,
+) -> Result<pb::TeeReceipt, tonic::Status> {
     let inputs = format!("action={action}\n").into_bytes();
+    let guest_id = if guest_id.is_empty() {
+        Vec::new()
+    } else {
+        guest_id.as_bytes().to_vec()
+    };
     let resp = client
         .execute(ExecuteRequest {
-            guest_id: Vec::new(),
+            guest_id,
             config_hash: rules.to_vec(),
             inputs,
             nonce: Vec::new(),

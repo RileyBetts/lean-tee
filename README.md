@@ -1,13 +1,15 @@
 # lean-tee
 
-**Integrity-first zkTEE** — measured guest execution, SHA-256 hashed receipts, and lean-grpc APIs so chains and verifiers can accept honest results or cheaply reject adversarial ones.
+**Portable integrity TEE compute** — registered measured guests, hashed receipts, and lean-grpc APIs so enterprises and chains can accept honest public results or cheaply reject forged ones.
 
-Not a confidentiality enclave (no Nitro / sealed memory).
+Not a confidentiality enclave (no Nitro / sealed memory). See [docs/PRODUCT.md](docs/PRODUCT.md).
 
 | Profile | Prove | Verify | Use |
 | --- | --- | --- | --- |
-| **`lean-tee-v1`** | Mock proof (`SHA256` domain `lean-tee/mock-proof/v1`) | Recompute resultHash + mock proof | Demos, Anchor Strict first cut, CI |
-| **`lean-tee-v2`** | SP1 Hypercube RISC-V | Host verifies SP1; never trust client `proof_ok` alone | Production-oriented integrity |
+| **`lean-tee-v1`** | Mock proof (`SHA256` domain `lean-tee/mock-proof/v1`) | Recompute resultHash + mock proof | CI, demos |
+| **`lean-tee-v2`** | SP1 Hypercube RISC-V | Host verifies SP1; never trust client `proof_ok` alone | **Production integrity** |
+
+**First-party guests:** `compliance_operator`, `voting_operator`, `onboarding_operator`, `trade_operator` ([registry](config/guests/registry.json)).
 
 ## Quickstart (mock, no SP1)
 
@@ -17,6 +19,11 @@ Requires Lean 4 (`lean-toolchain`), OpenSSL, and a [lean-grpc](https://github.co
 lake build receiptTests teeServer teeClient teeLoopback
 ./.lake/build/bin/receiptTests
 ./scripts/standalone_demo.sh
+./scripts/adversarial_matrix_demo.sh
+./scripts/action_matrix_demo.sh
+./scripts/enterprise_control_demo.sh
+./scripts/cross_impl_golden_demo.sh
+./scripts/prove_mock_loopback_demo.sh
 ```
 
 Manual:
@@ -43,7 +50,7 @@ LEAN_TEE_PROVE_MODE=mock LEAN_TEE_PROVE_PORT=50072 \
 - Guest code id: `SHA256("lean-tee/compliance_operator/v1")`
 - Shared Rust algorithms: crate `lean_tee_receipt` under [`host/receipt`](host/receipt)
 
-See [docs/PRODUCT.md](docs/PRODUCT.md), [docs/API.md](docs/API.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+See [docs/PRODUCT.md](docs/PRODUCT.md), [docs/API.md](docs/API.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/ENTERPRISE.md](docs/ENTERPRISE.md), [docs/SLA.md](docs/SLA.md).
 
 ## Layout
 
@@ -58,8 +65,14 @@ See [docs/PRODUCT.md](docs/PRODUCT.md), [docs/API.md](docs/API.md), [docs/THREAT
 | `clients/python` | Python Execute / AcceptReceipt SDK |
 | `clients/rust` | Thin tonic Tee + Prove client |
 | `Tests/` | Receipt + gRPC loopbacks |
-| `docs/` | Product, API, threat model |
+| `config/guests/` | First-party guest registry |
+| `docs/` | Product, API, threat model, CRYPTO, ENTERPRISE, SLA, Anchor multi-guest |
 | `scripts/standalone_demo.sh` | Clone-and-run mock gate |
+| `scripts/adversarial_matrix_demo.sh` | Field mutations → exact reject reasons (Lean/Rust/Python) |
+| `scripts/action_matrix_demo.sh` | Per-guest allow/deny matrix |
+| `scripts/enterprise_control_demo.sh` | ACL + audit + durable jobs |
+| `scripts/cross_impl_golden_demo.sh` | Golden vectors across Lean / Rust / Python |
+| `scripts/prove_mock_loopback_demo.sh` | Lean Tee ↔ Rust Prove (mock) |
 
 ## Dependencies
 
@@ -73,9 +86,10 @@ See [docs/PRODUCT.md](docs/PRODUCT.md), [docs/API.md](docs/API.md), [docs/THREAT
 - [x] lean-grpc Tee / Prove / Verify / AnchorSink
 - [x] Shared `lean_tee_receipt` + golden vectors
 - [x] Mock-first standalone demo + CI
-- [x] Policy / guest registry (compliance operator)
-- [x] SP1 prove path + host verify (`lean-tee-v2`)
-- [x] Anchor Chain Strict Mode consumer (sibling repo)
+- [x] Multi-guest registry (compliance / voting / onboarding / trade)
+- [x] Enterprise control plane (ACL, audit, quotas, job dir, mTLS docs)
+- [x] SP1 prove path + host verify (`lean-tee-v2`); production default documented
+- [x] Anchor Chain Strict Mode consumer + multi-guest mapping docs
 
 ## License
 

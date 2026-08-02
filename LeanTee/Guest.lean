@@ -48,7 +48,7 @@ def inputsAsString (inputs : ByteArray) : String :=
 def trimStr (s : String) : String :=
   String.ofList (s.toList.dropWhile Char.isWhitespace |>.reverse.dropWhile Char.isWhitespace |>.reverse)
 
-/-- Built-in defaults (Rust may narrow via `allow=` in rules). -/
+/-- Built-in defaults for compliance_operator when `allow=` absent. -/
 def defaultAllowPrefixes : List String :=
   [ "action=vote.yes"
   , "action=vote.no"
@@ -61,13 +61,33 @@ def defaultAllowPrefixes : List String :=
 def actionAllowed (text : String) : Bool :=
   defaultAllowPrefixes.any (fun p => text.startsWith p)
 
+/-- Optional `allow=` from rules (compliance narrowing). -/
+def parseAllow? (rulesRaw : ByteArray) : Option (List String) :=
+  match String.fromUTF8? rulesRaw with
+  | none => none
+  | some text =>
+    Id.run do
+      for line in text.splitOn "\n" do
+        let t := trimStr line
+        if t.startsWith "allow=" then
+          let rest := (t.splitOn "allow=").getD 1 ""
+          let parts := rest.splitOn "," |>.map trimStr |>.filter (· ≠ "")
+          let prefs := parts.map fun p =>
+            if p.startsWith "action=" then p else s!"action={p}"
+          if prefs.isEmpty then return none
+          else return some prefs
+      pure none
+
+/-- Compliance guest oracle. Multi-guest path: `LeanTee.Guests.runGuest`. -/
 def runCompliance (cfg : ComplianceConfig) (inputs : ByteArray) : ByteArray :=
   let text := inputsAsString inputs
-  let allowed := actionAllowed text
+  let allowed :=
+    match parseAllow? cfg.rulesRaw with
+    | some prefs => prefs.any (fun p => text.startsWith p)
+    | none => actionAllowed text
   let decision := if allowed then "allow" else "deny"
   let reason := Hash.sha256 (Hash.concatLenPrefixed #[cfg.rulesHash, inputs])
   let reasonHex := hexEncode reason
-  let _ := cfg.rulesRaw -- reserved for future Lean-side allow= parse
   s!"decision={decision}\nreason={reasonHex}\n".toUTF8
 
 def mockProof (m : Measurement) (inputs outputs : ByteArray) : ByteArray :=

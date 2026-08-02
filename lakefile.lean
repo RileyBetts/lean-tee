@@ -66,3 +66,9 @@ lean_exe rustProveLoopback where
 
 lean_exe goldenVectors where
   root := `Tests.GoldenVectors
+
+lean_exe adversarialMatrix where
+  root := `Tests.AdversarialMatrix
+
+lean_exe guestRegistry where
+  root := `Tests.GuestRegistry
