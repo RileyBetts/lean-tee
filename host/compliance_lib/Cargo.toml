@@ -1,0 +1,10 @@
+[package]
+name = "lean_tee_compliance"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared compliance guest logic (host + SP1 RISC-V guest)"
+
+[dependencies]
+sha2 = "0.10"
+hex = "0.4"

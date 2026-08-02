@@ -1,0 +1,38 @@
+[package]
+name = "lean_tee_prove_server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "lean_tee.v1.Prove gRPC server backed by SP1 RISC-V zkVM"
+
+[[bin]]
+name = "prove_server"
+path = "src/main.rs"
+
+[[bin]]
+name = "sp1_smoke"
+path = "src/bin/sp1_smoke.rs"
+
+[features]
+default = ["sp1"]
+# Disable with `--no-default-features` for mock-only Prove (no zkVM).
+sp1 = []
+
+[dependencies]
+lean_tee_compliance = { path = "../compliance_lib" }
+bytes = "1"
+hex = "0.4"
+prost = "0.13"
+sha2 = "0.10"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal"] }
+tonic = { version = "0.12", features = ["transport"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1", features = ["derive"] }
+bincode = "1.3"
+sp1-sdk = { version = "6.3.1", default-features = false, features = ["blocking"] }
+
+[build-dependencies]
+protoc-bin-vendored = "3"
+tonic-build = "0.12"
+sp1-build = "6.3.1"

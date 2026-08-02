@@ -1,0 +1,7 @@
+.lake/
+lake-manifest.json
+*.ilean
+*.olean
+*.trace
+host/target/
+.lake/lib/

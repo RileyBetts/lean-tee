@@ -1,0 +1,105 @@
+syntax = "proto3";
+package lean_tee.v1;
+
+// Normative wire contract for lean-tee (Lean stubs in LeanTee/Proto.lean).
+
+message Measurement {
+  bytes code_hash = 1;
+  bytes config_hash = 2;
+}
+
+message PublicIO {
+  bytes inputs = 1;
+  bytes outputs = 2;
+}
+
+message ReceiptMeta {
+  string version = 1;
+  string domain = 2;
+  string sink_id = 3;
+}
+
+message TeeReceipt {
+  Measurement measurement = 1;
+  PublicIO public_io = 2;
+  bytes result_hash = 3;
+  bytes nonce = 4;
+  bytes proof_ref = 5;
+  ReceiptMeta meta = 6;
+}
+
+message ExecuteRequest {
+  bytes guest_id = 1;       // optional label; measurement derived from config
+  bytes config_hash = 2;    // rules / config commitment
+  bytes inputs = 3;
+  bytes nonce = 4;
+  bool submit_to_sink = 5;
+}
+
+message ExecuteResponse {
+  string job_id = 1;
+  TeeReceipt receipt = 2;   // filled when job completes (sync mock path)
+  string status = 3;        // pending | done | error
+}
+
+message GetReceiptRequest {
+  string job_id = 1;
+}
+
+message MeasureRequest {
+  bytes config_hash = 1;
+}
+
+message MeasureResponse {
+  Measurement measurement = 1;
+}
+
+message ProveRequest {
+  Measurement measurement = 1;
+  bytes inputs = 2;
+}
+
+message ProveResponse {
+  bytes outputs = 1;
+  bytes proof_ref = 2;
+}
+
+message AcceptReceiptRequest {
+  TeeReceipt receipt = 1;
+  bytes policy_code_hash = 2;   // allowed code hash (demo: single entry)
+  bytes policy_config_hash = 3;
+  bool proof_ok = 4;            // if false, host skipped verify; else use proof_ref
+}
+
+message AcceptReceiptResponse {
+  bool accepted = 1;
+  string reason = 2;
+}
+
+message SubmitRequest {
+  TeeReceipt receipt = 1;
+}
+
+message SubmitAck {
+  bool ok = 1;
+  string ref = 2;
+  string message = 3;
+}
+
+service Tee {
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+  rpc GetReceipt(GetReceiptRequest) returns (ExecuteResponse);
+  rpc Measure(MeasureRequest) returns (MeasureResponse);
+}
+
+service Prove {
+  rpc Prove(ProveRequest) returns (ProveResponse);
+}
+
+service Verify {
+  rpc AcceptReceipt(AcceptReceiptRequest) returns (AcceptReceiptResponse);
+}
+
+service AnchorSink {
+  rpc Submit(SubmitRequest) returns (SubmitAck);
+}
