@@ -48,13 +48,19 @@ bash scripts/sp1_lean_runtime_build.sh   # → .cache/lean-sp1-runtime/prefix/li
 
 Still required before compliance ELF execute-only:
 
-1. **`LEAN_SP1` stubs** on Lean 4.32.1 `src/runtime` (Anoma’s `LEAN_RISC0` idea; do not use their 4.22 tree as-is — ST-ref ABI diverged)
+1. ~~**`LEAN_SP1` stubs** on Lean 4.32.1 `src/runtime`~~ — **done** (`libLean.a` via fetch/patch/build scripts)
 2. Compile Lean **Init** IR for SP1
 3. Compile Lake IR for `GuestSp1` + `Hash` + `Guest` + `Measurement` with [`native/sha256_portable.c`](../native/sha256_portable.c)
 4. Link into an SP1 guest crate via [`lean_guest_bridge.c`](../host/lean_sp1_runtime/lean_guest_bridge.c)
 5. Parity goldens vs Lean in-process / Rust twin
 
-Known: stock runtime compile under SP1 g++ fails on `thread.h` (`std::adopt_lock_t` under `-fno-exceptions`), `sys/mman.h`, emscripten debug hooks, etc. — exactly the surface the stubs must cover.
+Runtime build (Lean **4.32.1**, not Anoma 4.22):
+
+```bash
+bash scripts/sp1_lean_runtime_fetch.sh   # sparse-clone + LEAN_SP1 patch
+bash scripts/sp1_lean_runtime_build.sh   # → .cache/lean-sp1-runtime/prefix/lib/libLean.a
+```
+
 
 ## Later phases
 

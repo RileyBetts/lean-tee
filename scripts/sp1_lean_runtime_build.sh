@@ -18,8 +18,18 @@ test -x "$AR" || { echo "missing SP1 ar at $AR"; exit 1; }
 rm -rf "$BUILD"
 mkdir -p "$BUILD/obj" "$PREFIX/lib" "$PREFIX/include/lean"
 cp -a "$HOME/.elan/toolchains/leanprover--lean4---v4.32.1/include/lean/." "$PREFIX/include/lean/"
+# Prefer our SP1 config; drop toolchain version.h that redefines platform.
 cp -f "$ROOT/host/lean_sp1_runtime/include/lean/config.h" "$PREFIX/include/lean/config.h"
+rm -f "$PREFIX/include/lean/version.h"
+cp -f "$ROOT/host/lean_sp1_runtime/include/lean/version.h" "$PREFIX/include/lean/version.h"
 cp -f "$ROOT/host/lean_sp1_runtime/include/githash.h" "$PREFIX/include/githash.h"
+
+# alloca for LEAN_ALLOCA on bare-metal RISC-V
+ALLOCA_FLAGS=()
+if [[ -f "$HOME/.sp1/riscv/riscv64-unknown-elf/include/alloca.h" ]] || \
+   echo '#include <alloca.h>' | "$CXX" -x c - -fsyntax-only -march=rv64im -mabi=lp64 2>/dev/null; then
+  ALLOCA_FLAGS+=(-include alloca.h)
+fi
 
 INC=(
   -I"$SRC/src"
@@ -33,8 +43,10 @@ FLAGS=(
   -march=rv64im -mabi=lp64
   -fno-builtin -fno-exceptions -fno-rtti -fno-threadsafe-statics
   -Wall -Wno-unused-parameter -Wno-unused-function
+  "${ALLOCA_FLAGS[@]}"
 )
 
+# Skip io/process/libuv/openssl/uv — too host-heavy for phase-1 guest.
 CORE=(
   alloc.cpp object.cpp apply.cpp memory.cpp utf8.cpp hash.cpp
   init_module.cpp exception.cpp debug.cpp mpz.cpp mpn.cpp
@@ -42,6 +54,11 @@ CORE=(
   stackinfo.cpp stack_overflow.cpp object_ref.cpp mutex.cpp
   thread.cpp allocprof.cpp
 )
+# Require patches applied by fetch script.
+test -f "$SRC/.lean_sp1_patched" || {
+  echo "missing LEAN_SP1 patches; run scripts/sp1_lean_runtime_fetch.sh"
+  exit 1
+}
 
 OK=0
 FAIL=0

@@ -12,23 +12,29 @@ mkdir -p "$CACHE"
 if [[ ! -d "$SRC/.git" ]]; then
   rm -rf "$SRC"
   git clone --depth 1 --branch "$LEAN_TAG" --filter=blob:none --sparse "$REPO_URL" "$SRC"
-  git -C "$SRC" sparse-checkout set src/runtime src/include
+  git -C "$SRC" sparse-checkout set src/runtime src/include src/util
 else
   git -C "$SRC" fetch --depth 1 origin "refs/tags/$LEAN_TAG:refs/tags/$LEAN_TAG" || true
   git -C "$SRC" checkout "$LEAN_TAG"
-  git -C "$SRC" sparse-checkout set src/runtime src/include
+  git -C "$SRC" sparse-checkout set src/runtime src/include src/util
 fi
+
+# Fresh tree before patches (re-fetch resets; keep patches reproducible).
+git -C "$SRC" checkout -- src/runtime src/util 2>/dev/null || true
+rm -f "$SRC/.lean_sp1_patched"
 
 mkdir -p "$SRC/src/include/lean"
 cp -f "$ROOT/host/lean_sp1_runtime/include/lean/config.h" "$SRC/src/include/lean/config.h"
 cp -f "$ROOT/host/lean_sp1_runtime/include/lean/version.h" "$SRC/src/include/lean/version.h"
 cp -f "$ROOT/host/lean_sp1_runtime/include/githash.h" "$SRC/src/include/githash.h"
 
+python3 "$ROOT/scripts/sp1_lean_runtime_patch.py" "$SRC"
+
 cat >"$CACHE/PROVENANCE.txt" <<EOF
 source=$REPO_URL@$LEAN_TAG
 overlay=$ROOT/host/lean_sp1_runtime
+patched_by=scripts/sp1_lean_runtime_patch.py
 fetched_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-note=Stock Lean runtime needs LEAN_SP1 stubs (threads/IO/mmap) before SP1 link succeeds.
 EOF
 
-echo "fetched Lean $LEAN_TAG runtime → $SRC"
+echo "fetched + patched Lean $LEAN_TAG runtime → $SRC"

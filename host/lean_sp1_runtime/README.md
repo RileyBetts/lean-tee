@@ -2,18 +2,16 @@
 
 Compiles a Lean **4.32.1** C++ runtime for SP1’s `riscv64im-succinct-zkvm-elf`.
 
-Do **not** drop in [anoma/lean-risc0-runtime](https://github.com/anoma/lean-risc0-runtime) unchanged:
-that tree targets Lean **4.22** (e.g. ST refs still take an IO “world” argument). Headers from
-4.32.1 reject that ABI.
+Anoma’s [lean-risc0-runtime](https://github.com/anoma/lean-risc0-runtime) targets Lean **4.22** and is **not** drop-in (ST-ref ABI diverged). We fetch stock Lean `v4.32.1` `src/runtime` and apply `LEAN_SP1` stubs via `scripts/sp1_lean_runtime_patch.py` (same idea as Anoma’s `LEAN_RISC0`).
 
 ## Status
 
 | Step | State |
 | --- | --- |
-| Fetch Lean `v4.32.1` `src/runtime` | `scripts/sp1_lean_runtime_fetch.sh` |
-| Compile cores with SP1 g++ | `scripts/sp1_lean_runtime_build.sh` (fails until stubs) |
-| `LEAN_SP1` stubs (threads, mmap, debug, no libuv) | **TODO** — mirror Anoma `LEAN_RISC0` on 4.32.1 sources |
-| Init IR for SP1 | **TODO** (Anoma `lean-risc0-init` analogue) |
+| Fetch Lean `v4.32.1` `src/runtime` + `src/util` | `scripts/sp1_lean_runtime_fetch.sh` |
+| Apply `LEAN_SP1` stubs | `scripts/sp1_lean_runtime_patch.py` |
+| Compile cores → `libLean.a` | `scripts/sp1_lean_runtime_build.sh` (**works**) |
+| Init IR for SP1 | **TODO** |
 | Link GuestSp1 + portable sha256 | **TODO** |
 
 ## Prerequisites
@@ -22,11 +20,12 @@ that tree targets Lean **4.22** (e.g. ST refs still take an IO “world” argum
 sp1up --c-toolchain   # ~/.sp1/riscv/bin/riscv64-unknown-elf-{gcc,g++,ar}
 ```
 
-## Build attempt
+## Build
 
 ```bash
 bash scripts/sp1_lean_runtime_fetch.sh
 bash scripts/sp1_lean_runtime_build.sh
+# → .cache/lean-sp1-runtime/prefix/lib/libLean.a
 ```
 
 ## Overlays in this directory
@@ -37,4 +36,4 @@ bash scripts/sp1_lean_runtime_build.sh
 | `lean_guest_bridge.c` | ByteArray bridge for `lean_tee_guest_run` |
 | `include/lean/config.h` | Lean 4.32.1 / SP1 platform config |
 
-Fetched sources live under `.cache/lean-sp1-runtime/` (gitignored).
+Fetched + patched sources live under `.cache/lean-sp1-runtime/` (gitignored).
