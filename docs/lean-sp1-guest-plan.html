@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Plan: Lean → C → RISC-V on SP1</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap');
+:root { --ink:#0e1a24; --muted:#4a5d6a; --paper:#eef3f6; --panel:#f8fbfd; --line:#c5d0d8; --accent:#0a6e7a; --code:#132029; --codefg:#d7e6ef; }
+* { box-sizing:border-box; }
+body { margin:0; color:var(--ink); background:linear-gradient(165deg,#dce8ee,transparent 42%), var(--paper); font-family:'Source Serif 4',Georgia,serif; font-size:1.05rem; line-height:1.65; }
+.wrap { max-width:52rem; margin:0 auto; padding:2.5rem 1.25rem 4rem; }
+h1,h2,h3 { font-family:Outfit,sans-serif; letter-spacing:-0.02em; }
+h1 { font-size:1.9rem; margin:0 0 1rem; }
+h2 { font-size:1.3rem; margin:2rem 0 .75rem; border-bottom:1px solid var(--line); padding-bottom:.35rem; }
+h3 { font-size:1.05rem; margin:1.4rem 0 .5rem; }
+p { margin:0 0 .9rem; }
+a { color:var(--accent); }
+code { font-family:'IBM Plex Mono',monospace; font-size:.86em; }
+pre { background:var(--code); color:var(--codefg); padding:1rem; overflow-x:auto; font-family:'IBM Plex Mono',monospace; font-size:.8rem; }
+table { width:100%; border-collapse:collapse; background:var(--panel); margin:0 0 1rem; font-size:.95rem; }
+th,td { border:1px solid var(--line); padding:.5rem .65rem; text-align:left; vertical-align:top; }
+th { background:#d7eef1; font-family:Outfit,sans-serif; font-size:.82rem; }
+ul,ol { margin:0 0 1rem; padding-left:1.3rem; }
+.meta { font-family:'IBM Plex Mono',monospace; font-size:.75rem; color:var(--muted); margin-bottom:1.5rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<p class="meta">lean_sp1_guest_no_rust_twin.plan.md</p>
+<h1>Plan: Compiled Lean → C → RISC-V on SP1 (no Rust twin)</h1>
+<h2>Decision (locked)</h2>
+<ul>
+<li>**Stay on SP1** because of the Lean-oriented prover formalization track ([sp1-lean](https://github.com/succinctlabs/sp1-lean) / Sail), not because Rust is the guest language of record.</li>
+<li>**Do not pursue the Rust twin as the proven semantic guest.** Rust may remain only as:</li>
+<p>  - host Prove/adapters (<code>prove_server</code>, <code>lean_tee_receipt</code>), and</p>
+<p>  - a <strong>thin zkVM I/O shim</strong> (read public inputs / commit outputs) if required by <code>sp1-zkvm</code>.</p>
+<ul>
+<li>**Proven guest body** = Lean-compiled C lowered with the SP1 RISC-V toolchain to a measured ELF.</li>
+<li>**Full Lean kernel in-guest** = stretch goal only after a working restricted guest.</li>
+</ul>
+<pre><code class="language-mermaid">flowchart LR
+  leanSrc[&quot;LeanTee.Guest / GuestProg pure slice&quot;]
+  lakeC[&quot;Lake emit C + lean runtime subset&quot;]
+  sp1Cc[&quot;SP1 RISC-V clang/link&quot;]
+  elf[&quot;Measured guest ELF&quot;]
+  prove[&quot;SP1 prove / verify&quot;]
+  receipt[&quot;TeeReceipt lean-tee-v2&quot;]
+
+  leanSrc --&gt; lakeC --&gt; sp1Cc --&gt; elf --&gt; prove --&gt; receipt</code></pre>
+<h2>What “no Rust twin” means precisely</h2>
+<table>
+<tr><th>Layer</th><th>Keep?</th><th>Role</th></tr>
+<tr><td>Lean Accept / `resultHash` / policy</td><td>Yes</td><td>Spec + verify</td></tr>
+<tr><td>`lean_tee_receipt` (Rust)</td><td>Yes</td><td>Shared hash/mock/SP1 commitment helpers for hosts</td></tr>
+<tr><td>`lean_tee_compliance` as **SP1 guest logic**</td><td>**No** (retire)</td><td>Today’s twin; becomes non-authoritative / optional host fallback during migration</td></tr>
+<tr><td>SP1 `host/guest` calling `run_measured`</td><td>Replace</td><td>Call Lean-exported C entry instead</td></tr>
+<tr><td>Thin `sp1_zkvm::io` glue</td><td>Allowed</td><td>Not a semantic twin</td></tr>
+</table>
+<h2>Scope of Lean that runs in SP1 (phase 1)</h2>
+<p><strong>In scope (pure, first-order, bounded):</strong></p>
+<ul>
+<li>`LeanTee.Guest` decision oracle (allow/deny + reason digest inputs as today).</li>
+<li>`LeanTee.GuestProg.parse` / `run` / `runBytes` for v1/v2 program bytes.</li>
+<li>SHA-256 via existing Lean FFI **only if** OpenSSL (or a pure Lean/C sha256) can be linked into SP1; otherwise a **small C sha256** used by both Lean `@[extern]` and documented as part of guest TCB (prefer one shared C sha256 used by Lean FFI on host *and* guest for parity).</li>
+</ul>
+<p><strong>Out of scope for phase 1:</strong></p>
+<ul>
+<li>`teeServer`, lean-grpc, `IO` networking, filesystem, threads, Lean elaborator, mathlib, full `Init` surface.</li>
+<li>Uploading arbitrary Lean source at runtime (still not a goal).</li>
+<li>Proving the SP1 chips in-tree (consume upstream `sp1-lean` as dependency/docs later; do not block guest work on finishing chip proofs).</li>
+</ul>
+<p><strong>Stretch (later):</strong> grow Init/runtime toward more of the Lean runtime (“kernel-like” capabilities). Explicit non-goal until phase 1 ELF proves + verifies for compliance + GuestProg.</p>
+<h2>ABI (normative for the Lean entry)</h2>
+<p>Match today’s SP1 guest public interface so receipts stay compatible:</p>
+<pre><code class="language-text">read:  config_hash : [u8;32]
+read:  inputs      : bytes
+read:  program     : bytes   -- empty =&gt; compliance path; non-empty =&gt; GuestProg
+commit: outputs    : bytes   -- decision=…\nreason=…</code></pre>
+<p>Lean exports a single C-callable entry, e.g.:</p>
+<pre><code class="language-c">// lean_tee_guest_run(config_hash, config_hash_len,
+//                    inputs, inputs_len,
+//                    program, program_len,
+//                    /* out */ uint8_t** outputs, size_t* outputs_len) -&gt; int</code></pre>
+<p>Semantics must equal current Lean <code>GuestProg.run_measured</code> / compliance <code>run</code> (byte-identical outputs for goldens).</p>
+<h2>Workstreams</h2>
+<h3>A. Lean guest library (spec-executable slice)</h3>
+<ol>
+<li>Create `LeanTee/GuestSp1.lean` (name flexible) that depends only on Hash/Guest/GuestProg — **no** Services/Grpc.</li>
+<li>Mark entry with stable `@[export lean_tee_guest_run]` (or Lean 4 export attribute of record for 4.32.1).</li>
+<li>Enforce purity: no `IO` in the call graph of the entry (CI grep / Lake check).</li>
+<li>Unit goldens: same vectors as today’s Rust twin / Lean tests (`action=vote.yes`, GuestProg v1/v2).</li>
+</ol>
+<h3>B. C emission pipeline</h3>
+<ol>
+<li>Lake target that builds the guest lib and retains/emits C under `.lake/build/ir/` (Lean already lowers to C).</li>
+<li>Script `scripts/sp1_lean_guest_build.sh`:</li>
+<p>   - collect needed <code>.c</code> from guest modules + <strong>minimal runtime</strong> sources,</p>
+<p>   - compile with SP1’s RISC-V clang (<code>cargo prove</code> / SP1 CC),</p>
+<p>   - link into the SP1 guest crate as static lib <code>liblean_tee_guest.a</code> <strong>or</strong> compile Lean C directly into the guest <code>build.rs</code>.</p>
+<ol>
+<li>Pin toolchain: **Lean 4.32.1** (repo `lean-toolchain`) + SP1 **6.3.1** (current workspace). Document upgrade coupling.</li>
+</ol>
+<h3>C. Minimal Lean runtime for SP1</h3>
+<p>Hardest workstream. Pattern after Anoma’s RISC0 Lean runtime ideas, adapted to SP1:</p>
+<ol>
+<li>Inventory symbols required by emitted C for the phase-1 call graph (object allocator, RC, `ByteArray`, `String`, `Nat` ops used, panic/abort stubs).</li>
+<li>Provide SP1-safe stubs: no pthreads, no signals, no filesystem; abort → zkVM fail / deny output policy (choose fail-closed: commit `decision=deny` only if entry returns error code; panics should not be silent allow).</li>
+<li>Allocator: bump or RC heap in guest memory with fixed max (document limit; OOM → deny).</li>
+<li>Optional `LEAN_TEE_SEALED_*`-style hardening is N/A inside zkVM; focus on determinism and size.</li>
+<li>Deliverable: `host/lean_sp1_runtime/` (C/C++) + build instructions; **not** full Init.</li>
+</ol>
+<p>Risk: Lean runtime is large; phase 1 must aggressively limit imports so the link set stays small enough for SP1 execute/prove on reasonable hardware.</p>
+<h3>D. SP1 guest crate rewire</h3>
+<ol>
+<li>Replace `lean_tee_compliance::run_measured` in [`host/guest/src/main.rs`](host/guest/src/main.rs) with FFI call into Lean entry.</li>
+<li>Keep `sp1_zkvm::entrypoint!` / `io::read` / `commit_slice` in a **thin** Rust (or C) wrapper — allowed glue, not twin.</li>
+<li>Update `code_id` / registry: e.g. `lean-tee/compliance_operator/lean-sp1/v1` and `lean-tee/guest_prog_runtime/lean-sp1/v1` (or one ELF with two logical paths as today). **Measurement changes are breaking** for Strict allow-lists — version clearly; document migration from Rust-ELF measurements.</li>
+<li>`sp1_smoke` / careful scripts must use the new ELF.</li>
+</ol>
+<h3>E. Host path during migration</h3>
+<ol>
+<li>**Prove path:** SP1 guest = Lean-compiled only (goal).</li>
+<li>**Lean `teeServer` mock Prove:** can keep calling Lean oracles **in-process** (that *is* Lean, not a Rust twin) — preferred for mock.</li>
+<li>**Deprecate** Rust compliance as authoritative semantics; optionally keep for differential testing until parity is green, then delete from guest link and mark crate “host legacy / tests only.”</li>
+</ol>
+<h3>F. Docs and product honesty</h3>
+<p>Update:</p>
+<ul>
+<li>[`docs/GUEST_PROG.md`](docs/GUEST_PROG.md), [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/VS_NITRO.md`](docs/VS_NITRO.md), [`docs/anchor-strict-lean-tee-attestation.html`](docs/anchor-strict-lean-tee-attestation.html), [`host/README.md`](host/README.md), [`CHANGELOG.md`](CHANGELOG.md).</li>
+</ul>
+<p>New: <code>docs/LEAN_SP1_GUEST.md</code> — pipeline, subset, TCB (Lean compiler + runtime subset + SP1 + sha256), non-goals (full kernel), relation to <code>sp1-lean</code>.</p>
+<p>Claim shape:</p>
+<p>&gt; Production integrity guest is <strong>compiled from Lean</strong>; SP1 is chosen so the <strong>processor/constraint story</strong> can be Lean-audited upstream. Verifiers still check measurement + proof — they do not re-run Lean.</p>
+<h3>G. CI / demos</h3>
+<ol>
+<li>Build Lean SP1 guest in CI when SP1 available (weekly `sp1-execute` job + careful script).</li>
+<li>Parity job: Lean in-process oracle vs SP1 `--execute-only` outputs for fixed vectors.</li>
+<li>One prove smoke (mock SP1 prove or single CPU prove) once execute-only is stable.</li>
+<li>Anchor Strict demos: document new `code_hash` once measurements change.</li>
+</ol>
+<h2>Phased delivery</h2>
+<table>
+<tr><th>Phase</th><th>Outcome</th><th>Exit criteria</th></tr>
+<tr><td>**0 — Spike**</td><td>Hello-Lean: pure `ByteArray → ByteArray` Lean export linked into SP1 execute-only</td><td>ELF runs; commits known bytes</td></tr>
+<tr><td>**1 — Compliance**</td><td>Lean compliance oracle in SP1</td><td>Goldens match Lean in-process; execute-only CI</td></tr>
+<tr><td>**2 — GuestProg**</td><td>Lean GuestProg parse/run in same ELF</td><td>v1/v2 demos + parity</td></tr>
+<tr><td>**3 — Product cutover**</td><td>Rust twin removed from guest; docs/measurements updated; v2 path default uses Lean ELF</td><td>Main demos green; CHANGELOG breaking note</td></tr>
+<tr><td>**4 — Stretch**</td><td>Larger Init / closer to “kernel” capabilities</td><td>Separate RFC; not blocking 0–3</td></tr>
+</table>
+<h2>TCB / refinement story (honest)</h2>
+<p>Phase 1 refinement claim is <strong>pipeline trust</strong>, not a finished end-to-end theorem:</p>
+<ul>
+<li>Trusted: Lean 4.32 compiler emit, minimal runtime, C/SP1 toolchain, SP1 prove/verify, shared hash.</li>
+<li>Aspirational later: proofs that emitted C refines Lean IR; `sp1-lean` that SP1 chips refine Sail; optional CompCert-style story — **out of phase 1**.</li>
+</ul>
+<p>Do not market phase 1 as “formally verified Lean kernel on SP1.”</p>
+<h2>Risks and mitigations</h2>
+<table>
+<tr><th>Risk</th><th>Mitigation</th></tr>
+<tr><td>Runtime too large / prove OOM</td><td>Tiny import set; bump allocator; execute-only first; prove-one rare</td></tr>
+<tr><td>Lean 4.32 runtime ≠ Anoma 4.22 port</td><td>Budget explicit port; don’t assume drop-in</td></tr>
+<tr><td>SHA-256 / FFI drift host vs guest</td><td>One C sha256 in both paths</td></tr>
+<tr><td>Measurement break for Anchor</td><td>Versioned `code_id`; migration notes in Strict docs</td></tr>
+<tr><td>Accidental IO/deps pull Init explosion</td><td>Dedicated Lake package `lean-tee-guest-lean` with allow-listed modules</td></tr>
+</table>
+<h2>Explicit non-goals (this plan)</h2>
+<ul>
+<li>Switching to RISC0.</li>
+<li>Keeping Rust `lean_tee_compliance` as the SP1 semantic guest.</li>
+<li>Full Lean elaborator/kernel in SP1 in phases 0–3.</li>
+<li>Replacing `lean_tee_receipt` host verify with something else.</li>
+</ul>
+<h2>Suggested branch / sequencing</h2>
+<p>Work on <code>confidentiality</code> or a new branch <code>lean-sp1-guest</code> from <code>development</code>. Sequence: <strong>Phase 0 spike PR</strong> (prove feasibility) before large runtime investment; only then Phase 1–3.</p>
+<h2>Success metric</h2>
+<p>A third party can say: <strong>the measured SP1 guest ELF was produced from the Lean compliance/GuestProg sources we agreed</strong>, SP1 proves that ELF on public I/O, and Accept checks measurement + proof — with <strong>no Rust twin in the proven semantic loop</strong>.</p>
+</div>
+</body>
+</html>
