@@ -8,7 +8,8 @@
 
 ## Non-goals
 
-- Confidentiality / sealed memory (Nitro-style secrecy) — see [VS_NITRO.md](VS_NITRO.md).
+- Hardware sealed memory / Nitro-equivalent isolation by default — see [VS_NITRO.md](VS_NITRO.md).
+- Optional **local** confidentiality (`LEAN_TEE_CONFIDENTIALITY=local`) is process isolation + secret hygiene only — see [CONFIDENTIALITY.md](CONFIDENTIALITY.md); it does **not** stop local root.
 - Proving oracle honesty (host-supplied chain views).
 - Guaranteed delivery if the prover host censors submissions.
 - Full formal verification of the Rust/SP1 host or constraint extractors (v1.0).
@@ -25,6 +26,11 @@
 | Client-supplied `proof_ok` | **Not trusted** for non-mock proofs |
 | lean-grpc transport | Authenticate with mTLS in production |
 | Prover host OS | Untrusted for integrity (proof + hash decide) |
+| `confidentiality=local` sealed worker | Protects secrets from receipts/logs/peers; **not** from local root |
+
+## Optional local confidentiality
+
+When enabled, `secret_inputs` are handled only by the local sealed worker; PublicIO binds `secret_digest` only. See [CONFIDENTIALITY.md](CONFIDENTIALITY.md).
 
 ## Receipt binding
 

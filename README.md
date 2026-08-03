@@ -43,6 +43,7 @@ lake build receiptTests teeServer teeClient teeLoopback
 ./scripts/enterprise_control_demo.sh
 ./scripts/cross_impl_golden_demo.sh
 ./scripts/guest_prog_demo.sh
+./scripts/confidentiality_local_demo.sh
 ```
 
 ## Production path (`lean-tee-v2`)
@@ -85,7 +86,7 @@ LEAN_TEE_PROVE_MODE=mock LEAN_TEE_PROVE_PORT=50072 \
 - Shared Rust algorithms: crate `lean_tee_receipt` under [`host/receipt`](host/receipt)
 - Production prove: SP1 Hypercube via `lean-tee-v2` + host verify
 
-Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
+Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [CONFIDENTIALITY](docs/CONFIDENTIALITY.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
 
 ## Layout
 
@@ -120,6 +121,7 @@ Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [VS_NITR
 - [x] Enterprise control plane (ACL, audit, quotas, job dir, mTLS docs)
 - [x] SP1 prove path + host verify (`lean-tee-v2`); production default + gated execute CI
 - [x] GuestProg v1/v2 + LoadProgram ACL / size limits
+- [x] Optional local confidentiality (`confidentiality=local` sealed worker; not Nitro)
 - [x] Anchor Chain Strict Mode consumer + multi-guest mapping docs
 
 ## License

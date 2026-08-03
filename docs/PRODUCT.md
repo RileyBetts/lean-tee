@@ -50,6 +50,8 @@ Registry file: [`config/guests/registry.json`](../config/guests/registry.json) (
 
 See [ENTERPRISE.md](ENTERPRISE.md) and [SLA.md](SLA.md): mTLS (proxy), tenant ACL, API keys, audit JSONL, quotas, metrics, durable job store. Mock prove remains **CI/dev only**.
 
+Optional **local** confidentiality (`LEAN_TEE_CONFIDENTIALITY=local`): secrets via sealed worker — not Nitro; see [CONFIDENTIALITY.md](CONFIDENTIALITY.md).
+
 ## Non-goals
 
 - Nitro / SEV / TDX / sealed confidentiality (see [VS_NITRO.md](VS_NITRO.md))

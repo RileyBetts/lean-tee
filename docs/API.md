@@ -57,8 +57,12 @@ Rust shared crypto: `lean_tee_receipt`. Guests: `lean_tee_compliance` + registry
 | `ExecuteRequest.guest_id` / `MeasureRequest.guest_id` | Guest registry key (UTF-8). Empty → `compliance_operator` unless `program` / `program_id` is set. |
 | `ExecuteRequest.program` / `MeasureRequest.program` | Inline GuestProg bytes (`lean-tee-guest-prog/v1` or `/v2`). Sets measurement to runtime `codeHash` + `configHash = SHA256(program)`. |
 | `ExecuteRequest.program_id` | Id returned by `LoadProgram` (hex of program hash). Alternative to inline `program`. |
+| `ExecuteRequest.secret_inputs` | Secret bytes for `confidentiality=local` only; rejected when mode=off. Never copied into PublicIO. |
 | `LoadProgramRequest.program` | GuestProg payload; reject if over `LEAN_TEE_MAX_PROGRAM_BYTES` (default 65536) or tenant not on ACL `load_program` list. |
-| `ExecuteRequest.inputs` | UTF-8 framing; see binding helpers below. GuestProg v2 may require `interaction=`. |
+| `ExecuteRequest.inputs` | UTF-8 framing; see binding helpers below. GuestProg v2 may require `interaction=`. With secrets, server appends `secret_digest=<hex>`. |
+| `ReceiptMeta.confidentiality` | Empty or `local`. |
+| `ReceiptMeta.secret_digest_hex` | Hex SHA-256 of `secret_inputs` when mode=local. |
+| `AcceptReceiptRequest.require_confidentiality` | If `local`, require matching meta + digest. |
 | `TeeReceipt.result_hash` | Suite-domain length-prefixed hash over measurement + I/O + nonce |
 | `AcceptReceiptRequest.proof_ok` | Hint only for non-mock proofs; Verify re-checks mock locally and requires host-verified SP1 for v2. |
 | `AcceptReceiptRequest.policy_*` | Optional measurement allow-list entry; combined with server `LEAN_TEE_POLICY_FILE` |

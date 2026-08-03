@@ -1,0 +1,16 @@
+[package]
+name = "lean_tee_confidential"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Local sealed worker for optional confidentiality=local (not a hardware TEE)"
+
+[[bin]]
+name = "sealed_worker"
+path = "src/bin/sealed_worker.rs"
+
+[dependencies]
+lean_tee_compliance = { path = "../compliance_lib" }
+lean_tee_receipt = { path = "../receipt" }
+libc = "0.2"
+zeroize = { version = "1", features = ["derive"] }

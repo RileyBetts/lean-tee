@@ -46,7 +46,10 @@ Keep Nitro (or SEV-SNP / TDX / similar) when you need:
 4. **Lift-and-shift enclave apps** — Existing Nitro SDK / vsock / NSM workflows.
 5. **“Run arbitrary code in a sealed box”** — lean-tee ships a **registry of first-party guests**, not BYO sealed VMs.
 
-If you need both secrecy *and* portable public receipts, compose them: Nitro (or another TEE) for secrets; lean-tee for the **public attestation surface** you publish to chains and counterparties.
+If you need both secrecy *and* portable public receipts:
+
+- **Hardware sealed RAM** — use Nitro / SEV-SNP / TDX (or similar); lean-tee for the **public attestation surface**.
+- **Optional local hygiene** — lean-tee `LEAN_TEE_CONFIDENTIALITY=local` keeps secrets out of receipts via a sealed worker; this is **not** Nitro-equivalent. See [CONFIDENTIALITY.md](CONFIDENTIALITY.md).
 
 ## Trust roots (why this matters)
 
@@ -63,6 +66,7 @@ If you need both secrecy *and* portable public receipts, compose them: Nitro (or
 | --- | --- |
 | `lean-tee-v1` (mock) | CI/demo only — deterministic digest, **not** production attestation |
 | `lean-tee-v2` (SP1) | Production **integrity** under SP1 + host verify TCB — still **not** confidentiality |
+| `confidentiality=local` | Optional process isolation for secrets — **not** hardware TEE ([CONFIDENTIALITY.md](CONFIDENTIALITY.md)) |
 
 ## Bottom line
 
@@ -72,4 +76,4 @@ If you need both secrecy *and* portable public receipts, compose them: Nitro (or
 | Can it replace Nitro for **integrity / portable attestation / cheap reject**? | **Yes — that is the product.** |
 | Can it replace Nitro for **secrets / KMS / sealed isolation**? | **No — use a real confidential TEE.** |
 
-See also: [PRODUCT.md](PRODUCT.md), [THREAT_MODEL.md](THREAT_MODEL.md), [ENTERPRISE.md](ENTERPRISE.md).
+See also: [PRODUCT.md](PRODUCT.md), [THREAT_MODEL.md](THREAT_MODEL.md), [ENTERPRISE.md](ENTERPRISE.md), [CONFIDENTIALITY.md](CONFIDENTIALITY.md).

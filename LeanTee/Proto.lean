@@ -47,6 +47,8 @@ def ReceiptMeta.encode (m : LeanTee.ReceiptMeta) : ByteArray :=
     if !m.domain.isEmpty then acc := Proto.Wire.encodeString acc 2 m.domain
     if !m.sinkId.isEmpty then acc := Proto.Wire.encodeString acc 3 m.sinkId
     if !m.cryptoSuite.isEmpty then acc := Proto.Wire.encodeString acc 4 m.cryptoSuite
+    if !m.confidentiality.isEmpty then acc := Proto.Wire.encodeString acc 5 m.confidentiality
+    if !m.secretDigestHex.isEmpty then acc := Proto.Wire.encodeString acc 6 m.secretDigestHex
     return acc
 
 def ReceiptMeta.decode (b : ByteArray) : Except String LeanTee.ReceiptMeta := do
@@ -56,6 +58,8 @@ def ReceiptMeta.decode (b : ByteArray) : Except String LeanTee.ReceiptMeta := do
     domain := (Proto.Wire.fieldString? fields 2).getD "lean-tee/v1"
     sinkId := (Proto.Wire.fieldString? fields 3).getD ""
     cryptoSuite := (Proto.Wire.fieldString? fields 4).getD ""
+    confidentiality := (Proto.Wire.fieldString? fields 5).getD ""
+    secretDigestHex := (Proto.Wire.fieldString? fields 6).getD ""
   }
 
 def TeeReceipt.encode (r : LeanTee.TeeReceipt) : ByteArray :=
@@ -94,6 +98,7 @@ structure ExecuteRequest where
   submitToSink : Bool := false
   program : ByteArray := ByteArray.empty
   programId : String := ""
+  secretInputs : ByteArray := ByteArray.empty
   deriving Inhabited
 
 def ExecuteRequest.encode (m : ExecuteRequest) : ByteArray :=
@@ -106,6 +111,7 @@ def ExecuteRequest.encode (m : ExecuteRequest) : ByteArray :=
     if m.submitToSink then acc := Proto.Wire.encodeBool acc 5 true
     if !m.program.isEmpty then acc := Proto.Wire.encodeBytes acc 6 m.program
     if !m.programId.isEmpty then acc := Proto.Wire.encodeString acc 7 m.programId
+    if !m.secretInputs.isEmpty then acc := Proto.Wire.encodeBytes acc 8 m.secretInputs
     return acc
 
 def ExecuteRequest.decode (b : ByteArray) : Except String ExecuteRequest := do
@@ -118,6 +124,7 @@ def ExecuteRequest.decode (b : ByteArray) : Except String ExecuteRequest := do
     submitToSink := ((Proto.Wire.fieldUInt32? fields 5).getD 0) != 0
     program := (Proto.Wire.fieldBytes? fields 6).getD ByteArray.empty
     programId := (Proto.Wire.fieldString? fields 7).getD ""
+    secretInputs := (Proto.Wire.fieldBytes? fields 8).getD ByteArray.empty
   }
 
 structure ExecuteResponse where
@@ -243,6 +250,7 @@ structure AcceptReceiptRequest where
   policyCodeHash : ByteArray := ByteArray.empty
   policyConfigHash : ByteArray := ByteArray.empty
   proofOk : Bool := false
+  requireConfidentiality : String := ""
   deriving Inhabited
 
 def AcceptReceiptRequest.encode (m : AcceptReceiptRequest) : ByteArray :=
@@ -252,6 +260,8 @@ def AcceptReceiptRequest.encode (m : AcceptReceiptRequest) : ByteArray :=
     if !m.policyCodeHash.isEmpty then acc := Proto.Wire.encodeBytes acc 2 m.policyCodeHash
     if !m.policyConfigHash.isEmpty then acc := Proto.Wire.encodeBytes acc 3 m.policyConfigHash
     if m.proofOk then acc := Proto.Wire.encodeBool acc 4 true
+    if !m.requireConfidentiality.isEmpty then
+      acc := Proto.Wire.encodeString acc 5 m.requireConfidentiality
     return acc
 
 def AcceptReceiptRequest.decode (b : ByteArray) : Except String AcceptReceiptRequest := do
@@ -263,6 +273,7 @@ def AcceptReceiptRequest.decode (b : ByteArray) : Except String AcceptReceiptReq
     policyCodeHash := (Proto.Wire.fieldBytes? fields 2).getD ByteArray.empty
     policyConfigHash := (Proto.Wire.fieldBytes? fields 3).getD ByteArray.empty
     proofOk := ((Proto.Wire.fieldUInt32? fields 4).getD 0) != 0
+    requireConfidentiality := (Proto.Wire.fieldString? fields 5).getD ""
   }
 
 structure AcceptReceiptResponse where

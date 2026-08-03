@@ -19,6 +19,10 @@ message ReceiptMeta {
   string sink_id = 3;
   // Empty => sha256+mock (lean-tee-v1). See docs/CRYPTO.md.
   string crypto_suite = 4;
+  // Empty => off. "local" => optional local sealed-worker confidentiality (not Nitro).
+  string confidentiality = 5;
+  // Hex SHA-256 of secret_inputs when confidentiality=local; never the secret bytes.
+  string secret_digest_hex = 6;
 }
 
 message TeeReceipt {
@@ -41,6 +45,9 @@ message ExecuteRequest {
   bytes program = 6;
   // Hex id from LoadProgram (alternative to inline program).
   string program_id = 7;
+  // Secret bytes for confidentiality=local (rules or payload). Rejected when mode=off.
+  // Never copied into PublicIO; only SHA-256 digest is receipt-bound.
+  bytes secret_inputs = 8;
 }
 
 message ExecuteResponse {
@@ -79,6 +86,8 @@ message AcceptReceiptRequest {
   bytes policy_code_hash = 2;
   bytes policy_config_hash = 3;
   bool proof_ok = 4;
+  // If "local", require receiptMeta.confidentiality=local and non-empty secret_digest_hex.
+  string require_confidentiality = 5;
 }
 
 message AcceptReceiptResponse {

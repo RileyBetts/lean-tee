@@ -30,6 +30,10 @@ structure ReceiptMeta where
   domain : String
   sinkId : String
   cryptoSuite : String := ""
+  /-- Empty = off; `local` = sealed-worker confidentiality (not hardware TEE). -/
+  confidentiality : String := ""
+  /-- Hex SHA-256 of secret_inputs when confidentiality=local. -/
+  secretDigestHex : String := ""
   deriving Inhabited
 
 def ReceiptMeta.default : ReceiptMeta :=

@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "receipt",
   "compliance_lib",
+  "confidential",
   "guest",
   "prove_server",
 ]

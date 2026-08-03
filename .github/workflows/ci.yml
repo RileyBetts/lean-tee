@@ -38,6 +38,7 @@ jobs:
           bash scripts/enterprise_control_demo.sh
           bash scripts/cross_impl_golden_demo.sh
           bash scripts/guest_prog_demo.sh
+          bash scripts/confidentiality_local_demo.sh
           bash scripts/prove_mock_loopback_demo.sh
 
   rust-mock:

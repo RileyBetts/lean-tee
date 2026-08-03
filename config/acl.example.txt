@@ -4,3 +4,5 @@ demo compliance_operator voting_operator onboarding_operator trade_operator gues
 votes-only voting_operator
 # Tenants allowed to call LoadProgram (omit section ⇒ unrestricted LoadProgram).
 load_program demo
+# Tenants allowed to send Execute.secret_inputs (omit ⇒ unrestricted when mode=local).
+secret_inputs demo

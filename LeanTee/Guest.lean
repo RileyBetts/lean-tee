@@ -40,6 +40,28 @@ def hexEncode (b : ByteArray) : String :=
       s := s.push (hexDigit (v &&& 15))
     pure s
 
+private def hexVal (c : Char) : Option Nat :=
+  let n := c.toNat
+  if n ≥ '0'.toNat && n ≤ '9'.toNat then some (n - '0'.toNat)
+  else if n ≥ 'a'.toNat && n ≤ 'f'.toNat then some (n - 'a'.toNat + 10)
+  else if n ≥ 'A'.toNat && n ≤ 'F'.toNat then some (n - 'A'.toNat + 10)
+  else none
+
+def hexDecode (s : String) : Option ByteArray :=
+  let chars := s.toList.filter (fun c => !c.isWhitespace)
+  if chars.length % 2 != 0 then none
+  else
+    Id.run do
+      let mut out := ByteArray.empty
+      let mut i := 0
+      while i + 1 < chars.length do
+        match hexVal chars[i]!, hexVal chars[i+1]! with
+        | some hi, some lo =>
+          out := out.push (UInt8.ofNat (hi * 16 + lo))
+          i := i + 2
+        | _, _ => return none
+      return some out
+
 def inputsAsString (inputs : ByteArray) : String :=
   match String.fromUTF8? inputs with
   | some s => s

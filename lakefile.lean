@@ -78,3 +78,6 @@ lean_exe guestProgTests where
 
 lean_exe guestProgClient where
   root := `LeanTee.GuestProgClientMain
+
+lean_exe confidentialClient where
+  root := `LeanTee.ConfidentialClientMain

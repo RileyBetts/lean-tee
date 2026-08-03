@@ -16,16 +16,20 @@ structure AclFile where
   tenants : Array TenantAcl := #[]
   /-- Tenants allowed to call LoadProgram. Empty ⇒ no extra LoadProgram gate. -/
   loadProgramTenants : Array String := #[]
+  /-- Tenants allowed to send Execute.secret_inputs. Empty ⇒ unrestricted when mode=local. -/
+  secretInputsTenants : Array String := #[]
   deriving Inhabited
 
 /-- Line formats (see config/acl.example.txt):
 - `tenant_id guest_id [guest_id...]`
 - `load_program tenant_id [tenant_id...]` — allow-list for LoadProgram
+- `secret_inputs tenant_id [tenant_id...]` — allow-list for Execute.secret_inputs
 -/
 def loadAclFile (path : String) : IO AclFile := do
   let text ← IO.FS.readFile path
   let mut tenants : Array TenantAcl := #[]
   let mut loadProgramTenants : Array String := #[]
+  let mut secretInputsTenants : Array String := #[]
   for line in text.splitOn "\n" do
     let t := Guest.trimStr line
     if t.isEmpty || t.startsWith "#" then continue
@@ -36,10 +40,14 @@ def loadAclFile (path : String) : IO AclFile := do
       for tid in rest do
         if !loadProgramTenants.contains tid then
           loadProgramTenants := loadProgramTenants.push tid
+    | "secret_inputs" :: rest =>
+      for tid in rest do
+        if !secretInputsTenants.contains tid then
+          secretInputsTenants := secretInputsTenants.push tid
     | tenant :: rest =>
       let guests := rest.toArray.filter fun g => (Guests.findBuiltin g).isSome
       tenants := tenants.push { tenantId := tenant, guests }
-  return { tenants, loadProgramTenants }
+  return { tenants, loadProgramTenants, secretInputsTenants }
 
 def aclAllows (acl : AclFile) (tenant guestId : String) : Bool :=
   if acl.tenants.isEmpty then true
@@ -54,6 +62,11 @@ def aclAllows (acl : AclFile) (tenant guestId : String) : Bool :=
 def aclAllowsLoadProgram (acl : AclFile) (tenant : String) : Bool :=
   if acl.loadProgramTenants.isEmpty then true
   else acl.loadProgramTenants.any (· == tenant)
+
+/-- Empty `secretInputsTenants` ⇒ unrestricted when confidentiality=local. -/
+def aclAllowsSecretInputs (acl : AclFile) (tenant : String) : Bool :=
+  if acl.secretInputsTenants.isEmpty then true
+  else acl.secretInputsTenants.any (· == tenant)
 
 structure QuotaState where
   windowStartMs : IO.Ref Nat

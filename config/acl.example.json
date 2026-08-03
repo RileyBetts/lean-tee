@@ -16,5 +16,6 @@
       "guests": ["voting_operator"]
     }
   ],
-  "load_program_tenants": ["demo"]
+  "load_program_tenants": ["demo"],
+  "secret_inputs_tenants": ["demo"]
 }

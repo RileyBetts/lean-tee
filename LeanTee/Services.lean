@@ -7,6 +7,7 @@ import LeanTee.Guest
 import LeanTee.GuestProg
 import LeanTee.Guests.Registry
 import LeanTee.Control
+import LeanTee.Confidential
 import LeanTee.Receipt
 import LeanTee.Proto
 import LeanTee.Grpc
@@ -98,6 +99,10 @@ structure ServerControl where
   maxProgramBytes : Nat := GuestProg.defaultMaxProgramBytes
   /-- Documented profile: lean-tee-v1 (mock) or lean-tee-v2 (SP1). -/
   defaultProfile : String := "lean-tee-v1"
+  /-- Optional local confidentiality (off|local). -/
+  confidentiality : Confidential.Mode := .off
+  /-- Path to `sealed_worker` binary when confidentiality=local. -/
+  sealedWorkerBin : Option String := none
   quotas : Control.QuotaState
   metrics : Control.Metrics
 
@@ -132,7 +137,8 @@ def proveLocal (g : Guests.GuestDesc) (rulesRaw : ByteArray) (req : ProveRequest
 def verifyMockProofOk (r : TeeReceipt) : Bool :=
   Guest.verifyMockProof r.measurement r.publicIO.inputs r.publicIO.outputs r.proofRef
 
-def buildReceipt (m : Measurement) (inputs outputs nonce proofRef : ByteArray) : TeeReceipt :=
+def buildReceipt (m : Measurement) (inputs outputs nonce proofRef : ByteArray)
+    (confidentiality secretDigestHex : String := "") : TeeReceipt :=
   let io : PublicIO := { inputs, outputs }
   TeeReceipt.withComputedHash {
     measurement := m
@@ -145,6 +151,8 @@ def buildReceipt (m : Measurement) (inputs outputs nonce proofRef : ByteArray) :
       domain := "lean-tee/v1"
       sinkId := "lean-tee"
       cryptoSuite := suiteSha256Mock
+      confidentiality
+      secretDigestHex
     }
   }
 
@@ -221,6 +229,15 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
   match Control.checkApiKey ctrl.apiKey ctrl.presentedKey with
   | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.unauthenticated e)
   | .ok () => pure ()
+  if !req.secretInputs.isEmpty then
+    match ctrl.confidentiality with
+    | .off =>
+      return ({ jobId := "", status := "error:secret_inputs require LEAN_TEE_CONFIDENTIALITY=local" },
+        Grpc.Status.invalidArgument "confidentiality off")
+    | .local =>
+      if !Control.aclAllowsSecretInputs ctrl.acl ctrl.tenant then
+        return ({ jobId := "", status := s!"error:acl tenant={ctrl.tenant} cannot send secret_inputs" },
+          Grpc.Status.permissionDenied "acl secret_inputs")
   let prog? ← match ← resolveProgramBytes progStore req with
     | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.invalidArgument e)
     | .ok p => pure p
@@ -242,7 +259,10 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
       let g ← match resolveGuest req.guestId with
         | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.invalidArgument e)
         | .ok g => pure g
-      let m : Measurement := { codeHash := g.codeHash, configHash := Hash.sha256 req.configHash }
+      let configPreimage :=
+        if !req.secretInputs.isEmpty && req.configHash.isEmpty then req.secretInputs
+        else req.configHash
+      let m : Measurement := { codeHash := g.codeHash, configHash := Hash.sha256 configPreimage }
       pure (g, m, ByteArray.empty)
   if !Control.aclAllows ctrl.acl ctrl.tenant g.guestId then
     return ({ jobId := "", status := s!"error:forbidden guest_id={g.guestId}" }, Grpc.Status.permissionDenied "acl")
@@ -252,35 +272,66 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
   Control.beginRequest ctrl.quotas
   try
     Control.Metrics.bumpExecute ctrl.metrics
-    let proveReq : ProveRequest := {
-      measurement := m
-      inputs := req.inputs
-      program := programBytes
-    }
-    let proveResp ← match prove? with
-      | none => pure (proveLocal g req.configHash proveReq)
-      | some stub =>
-        match ← stub.Prove proveReq with
-        | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.internal e)
-        | .ok r => pure r
-    let nonce :=
-      if req.nonce.isEmpty then Hash.sha256 (Hash.concatLenPrefixed #[req.inputs, m.configHash])
-      else req.nonce
-    let receipt := buildReceipt m req.inputs proveResp.outputs nonce proveResp.proofRef
-    let jobId := Guest.hexEncode (Hash.sha256 (Hash.concatLenPrefixed #[nonce, receipt.resultHash]))
-    store.put jobId receipt
-    if let some dir := ctrl.jobDir then
-      Control.writeJobFile dir jobId (Guest.hexEncode receipt.resultHash)
-    if req.submitToSink then
-      match sink? with
-      | none => pure ()
-      | some sink =>
-        let _ ← sink.submit receipt
-        pure ()
-    if let some path := ctrl.auditPath then
-      Control.auditLine path s!"\{ \"event\":\"execute\", \"guest_id\":\"{g.guestId}\", \"job_id\":\"{jobId}\", \"tenant\":\"{ctrl.tenant}\" }"
-    Control.Metrics.logIfEnabled ctrl.metrics ctrl.metricsEnabled
-    return ({ jobId, receipt := some receipt, status := "done" }, Grpc.Status.ok)
+    -- Resolve public prove path or sealed-worker path (secrets never in PublicIO).
+    let sealedOrProve : Except String (ByteArray × ProveResponse × String × String) ← do
+      if req.secretInputs.isEmpty then
+        let proveReq : ProveRequest := {
+          measurement := m
+          inputs := req.inputs
+          program := programBytes
+        }
+        match prove? with
+        | none =>
+          pure (.ok (req.inputs, proveLocal g req.configHash proveReq, "", ""))
+        | some stub =>
+          match ← stub.Prove proveReq with
+          | .error e => pure (.error e)
+          | .ok r => pure (.ok (req.inputs, r, "", ""))
+      else
+        match ctrl.sealedWorkerBin with
+        | none => pure (.error "LEAN_TEE_SEALED_WORKER unset")
+        | some bin =>
+          let extra :=
+            if g.guestId == GuestProg.runtimeGuestId then programBytes else ByteArray.empty
+          match ← Confidential.runSealedWorkerHex bin g.guestId req.inputs req.secretInputs extra with
+          | .error e => pure (.error e)
+          | .ok sealed =>
+            if !Confidential.outputsLookSafe sealed.outputs req.secretInputs then
+              pure (.error "sealed worker outputs leaked secret")
+            else
+              let digHex := Guest.hexEncode sealed.secretDigest
+              let publicInputs := Confidential.publicInputsWithDigest req.inputs digHex
+              let proof := Guest.mockProof m publicInputs sealed.outputs
+              let proveResp : ProveResponse := { outputs := sealed.outputs, proofRef := proof }
+              pure (.ok (publicInputs, proveResp, "local", digHex))
+    match sealedOrProve with
+    | .error e =>
+      return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.internal e)
+    | .ok (publicInputs, proveResp, confMeta, digHex) =>
+      let nonce :=
+        if req.nonce.isEmpty then Hash.sha256 (Hash.concatLenPrefixed #[publicInputs, m.configHash])
+        else req.nonce
+      let receipt := buildReceipt m publicInputs proveResp.outputs nonce proveResp.proofRef confMeta digHex
+      if !Confidential.outputsLookSafe receipt.publicIO.inputs req.secretInputs then
+        return ({ jobId := "", status := "error:public inputs leaked secret" }, Grpc.Status.internal "secret leak")
+      if !Confidential.outputsLookSafe receipt.publicIO.outputs req.secretInputs then
+        return ({ jobId := "", status := "error:public outputs leaked secret" }, Grpc.Status.internal "secret leak")
+      let jobId := Guest.hexEncode (Hash.sha256 (Hash.concatLenPrefixed #[nonce, receipt.resultHash]))
+      store.put jobId receipt
+      if let some dir := ctrl.jobDir then
+        Control.writeJobFile dir jobId (Guest.hexEncode receipt.resultHash)
+      if req.submitToSink then
+        match sink? with
+        | none => pure ()
+        | some sink =>
+          let _ ← sink.submit receipt
+          pure ()
+      if let some path := ctrl.auditPath then
+        let conf := if confMeta.isEmpty then "off" else confMeta
+        Control.auditLine path
+          s!"\{ \"event\":\"execute\", \"guest_id\":\"{g.guestId}\", \"job_id\":\"{jobId}\", \"tenant\":\"{ctrl.tenant}\", \"confidentiality\":\"{conf}\" }"
+      Control.Metrics.logIfEnabled ctrl.metrics ctrl.metricsEnabled
+      return ({ jobId, receipt := some receipt, status := "done" }, Grpc.Status.ok)
   finally
     Control.endRequest ctrl.quotas
 
@@ -303,6 +354,14 @@ def handleAccept (policy : ServerPolicy) (ctrl : ServerControl) (trustProofOk : 
   | .error e => return ({ accepted := false, reason := e }, Grpc.Status.unauthenticated e)
   | .ok () => pure ()
   let suite := normalizeCryptoSuite req.receipt.receiptMeta.cryptoSuite
+  let confReq := Guest.trimStr req.requireConfidentiality
+  if !confReq.isEmpty then
+    if req.receipt.receiptMeta.confidentiality != confReq then
+      return ({ accepted := false
+                reason := s!"require_confidentiality={confReq} but receipt has confidentiality={req.receipt.receiptMeta.confidentiality}"
+              }, Grpc.Status.ok)
+    if confReq == "local" && req.receipt.receiptMeta.secretDigestHex.isEmpty then
+      return ({ accepted := false, reason := "require_confidentiality=local needs secret_digest_hex" }, Grpc.Status.ok)
   let resp :=
     if !leanHostSupportsSuite suite then
       ({ accepted := false

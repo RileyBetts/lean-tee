@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import LeanTee.Services
 import LeanTee.Control
 import LeanTee.GuestProg
+import LeanTee.Confidential
 import LeanTee.Grpc
 
 def parseHostPort (addr : String) : IO (String × UInt16) := do
@@ -63,6 +64,11 @@ def loadControl : IO LeanTee.Services.ServerControl := do
     match ← parseNatEnv "LEAN_TEE_MAX_PROGRAM_BYTES" with
     | some n => n
     | none => LeanTee.GuestProg.defaultMaxProgramBytes
+  let confidentiality :=
+    LeanTee.Confidential.parseMode ((← IO.getEnv "LEAN_TEE_CONFIDENTIALITY").getD "off")
+  let sealedWorkerBin ← IO.getEnv "LEAN_TEE_SEALED_WORKER"
+  if confidentiality == .local && sealedWorkerBin.isNone then
+    IO.println "WARN: LEAN_TEE_CONFIDENTIALITY=local but LEAN_TEE_SEALED_WORKER unset"
   return {
     apiKey
     presentedKey
@@ -75,6 +81,8 @@ def loadControl : IO LeanTee.Services.ServerControl := do
     metricsEnabled
     maxProgramBytes
     defaultProfile
+    confidentiality
+    sealedWorkerBin
     quotas
     metrics
   }
@@ -97,10 +105,11 @@ def main : IO Unit := do
   let policy ← loadPolicy
   let ctrl ← loadControl
   let trustProofOk := (← IO.getEnv "LEAN_TEE_TRUST_PROOF_OK") == some "1"
-  IO.println s!"lean-tee profile={ctrl.defaultProfile} tenant={ctrl.tenant} max_program_bytes={ctrl.maxProgramBytes}"
+  IO.println s!"lean-tee profile={ctrl.defaultProfile} tenant={ctrl.tenant} max_program_bytes={ctrl.maxProgramBytes} confidentiality={LeanTee.Confidential.modeToString ctrl.confidentiality}"
   if ctrl.defaultProfile == "lean-tee-v1" then
     IO.println "WARN: lean-tee-v1 (mock) is CI/demo only — do not use as production default"
-
+  if ctrl.confidentiality == .local then
+    IO.println "NOTE: confidentiality=local is process isolation — not Nitro / hardware sealed RAM"
   match ← IO.getEnv "LEAN_TEE_PROVE_ADDR" with
   | some addr =>
     let (host, p) ← parseHostPort addr
