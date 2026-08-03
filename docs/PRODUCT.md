@@ -36,12 +36,15 @@ Registry file: [`config/guests/registry.json`](../config/guests/registry.json) (
 
 ## Guarantees by profile
 
-| | `lean-tee-v1` | `lean-tee-v2` |
+| | `lean-tee-v2` (default / production) | `lean-tee-v1` (mock) |
 | --- | --- | --- |
 | `resultHash` binding | Yes | Yes |
-| Proof | Deterministic mock digest | SP1 Hypercube proof commitment |
-| Suitable for | CI, demos, cheap reject | **Production integrity** (default for enterprise) |
+| Proof | SP1 Hypercube proof commitment | Deterministic mock digest |
+| Suitable for | **Production integrity** | CI, demos only — **never production** |
 | Confidentiality | No | No |
+| CI gate | Weekly + manual SP1 execute ([`sp1-execute.yml`](../.github/workflows/sp1-execute.yml)) | Push/PR mock demos |
+
+`LEAN_TEE_DEFAULT_PROFILE` defaults to **`lean-tee-v2`**. Without `LEAN_TEE_PROVE_ADDR`, the server still runs in-process mock Prove and logs a warning — wire SP1 for real v2.
 
 ## Enterprise packaging
 
@@ -73,7 +76,8 @@ Require sibling checkout at **https://github.com/RileyBetts/lean-grpc/tree/v1.0.
 
 ## Roadmap (integrity multi-guest)
 
-1. Declarative guest registry + four first-party operators
-2. Enterprise control plane (ACL, audit, quotas, mTLS docs)
-3. Production `lean-tee-v2` prove default + durable jobs
-4. SDK `guest_id` + Anchor multi-guest packs
+1. ~~Declarative guest registry + first-party operators~~ (shipped)
+2. ~~Enterprise control plane (ACL, audit, quotas, mTLS docs)~~ (shipped)
+3. ~~Production `lean-tee-v2` default + gated SP1 execute CI + GuestProg v2~~ (shipped; durable jobs via `LEAN_TEE_JOB_DIR`)
+4. SDK `guest_id` + Anchor multi-guest packs (deeper consumer wiring)
+5. Optional: tighten measurement (ELF digests), three-way GuestProg goldens, request metadata auth

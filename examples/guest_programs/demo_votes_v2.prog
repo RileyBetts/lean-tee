@@ -1,0 +1,6 @@
+lean-tee-guest-prog/v2
+name=demo-votes-v2
+allow=vote.yes,vote.no
+deny=vote.admin
+require_interaction=true
+max_input_bytes=4096

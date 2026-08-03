@@ -14,8 +14,8 @@ It does **not** mean:
 
 | Profile | Expectation |
 | --- | --- |
-| `lean-tee-v1` (mock) | CI/dev only. Deterministic mock digest. Not production attestation. |
-| `lean-tee-v2` (SP1) | Production integrity. Host must verify SP1 before advertising `proof_ref`. Prove latency depends on hardware (`SP1_PROVER`, CPU RAM). |
+| `lean-tee-v2` (SP1) | **Production default.** Host must verify SP1 before advertising `proof_ref`. Prove latency depends on hardware (`SP1_PROVER`, CPU RAM). Gated CI: weekly SP1 execute-only. |
+| `lean-tee-v1` (mock) | **CI/dev only.** Deterministic mock digest. Not production attestation — never the hero path. |
 
 ## Durable jobs
 

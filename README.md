@@ -6,10 +6,12 @@
 
 | Profile | Prove | Verify | Use |
 | --- | --- | --- | --- |
-| **`lean-tee-v1`** | Mock proof | Recompute resultHash + mock | CI, demos only |
-| **`lean-tee-v2`** | SP1 Hypercube RISC-V | Host verifies SP1; never trust client `proof_ok` alone | **Production integrity** |
+| **`lean-tee-v2`** | SP1 Hypercube RISC-V | Host verifies SP1; never trust client `proof_ok` alone | **Production integrity (default)** |
+| **`lean-tee-v1`** | Mock proof | Recompute resultHash + mock | **CI / demos only — never prod** |
 
-**First-party guests:** `compliance_operator`, `voting_operator`, `onboarding_operator`, `trade_operator` ([registry](config/guests/registry.json)).
+Set `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` and wire `LEAN_TEE_PROVE_ADDR` to an SP1 `prove_server`. Mock must not be the hero or production path.
+
+**First-party guests:** `compliance_operator`, `voting_operator`, `onboarding_operator`, `trade_operator` ([registry](config/guests/registry.json)). Lean-specified programs: [GUEST_PROG.md](docs/GUEST_PROG.md).
 
 ## Why open source this?
 
@@ -26,9 +28,11 @@
 | Sealed secrets / KMS release to enclave PCRs | **AWS Nitro** (or similar confidential TEE) |
 | Both | Compose: confidential TEE for secrets + lean-tee for public receipts |
 
-## Quickstart (mock, no SP1)
+## Quickstart (mock — CI/demo only)
 
 Requires Lean 4 (`lean-toolchain`), OpenSSL, and a [lean-grpc](https://github.com/RileyBetts/lean-grpc) checkout (git-pinned; see below).
+
+**This path uses `lean-tee-v1` mock prove. Do not treat it as production attestation.**
 
 ```bash
 lake build receiptTests teeServer teeClient teeLoopback
@@ -41,7 +45,22 @@ lake build receiptTests teeServer teeClient teeLoopback
 ./scripts/guest_prog_demo.sh
 ```
 
-Manual:
+## Production path (`lean-tee-v2`)
+
+1. Install SP1 (`sp1up`) and build host with `--features sp1`.
+2. Run `prove_server` (CPU/network prover) and point `teeServer` at it:
+
+```bash
+# execute-only smoke (CI/nightly gate — no heavy prove by default)
+bash scripts/sp1_execute_ci.sh
+
+# careful local staged tests
+bash scripts/sp1_test_careful.sh
+```
+
+3. Server: `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` + `LEAN_TEE_PROVE_ADDR=host:port` (never ship mock as the default).
+
+Manual mock server (dev):
 
 ```bash
 ./.lake/build/bin/teeServer          # LEAN_TEE_PORT=50071
@@ -49,7 +68,7 @@ echo 'rules=vote.yes,vote.no' > /tmp/rules.txt
 ./.lake/build/bin/teeClient 127.0.0.1:50071 vote.yes /tmp/rules.txt
 ```
 
-Rust Prove (mock, no `cargo prove`):
+Rust Prove (mock, no `cargo prove`) — **CI/dev only**:
 
 ```bash
 cd host && cargo build -p lean_tee_prove_server --no-default-features
@@ -57,13 +76,14 @@ LEAN_TEE_PROVE_MODE=mock LEAN_TEE_PROVE_PORT=50072 \
   ./target/debug/prove_server
 ```
 
-## Product contract (`lean-tee-v1`)
+## Product contract (`lean-tee-v1` / `lean-tee-v2`)
 
 - Wire: [`proto/lean_tee/v1/tee.proto`](proto/lean_tee/v1/tee.proto)
 - `resultHash` domain: `lean-tee/v1` (length-prefixed SHA-256)
-- Mock `proof_ref` domain: `lean-tee/mock-proof/v1`
+- Mock `proof_ref` domain: `lean-tee/mock-proof/v1` (**not** production)
 - Default guest: `SHA256("lean-tee/compliance_operator/v1")` (empty `guest_id`)
 - Shared Rust algorithms: crate `lean_tee_receipt` under [`host/receipt`](host/receipt)
+- Production prove: SP1 Hypercube via `lean-tee-v2` + host verify
 
 Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
 
@@ -98,7 +118,8 @@ Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [VS_NITR
 - [x] Mock-first standalone demo + CI
 - [x] Multi-guest registry (compliance / voting / onboarding / trade)
 - [x] Enterprise control plane (ACL, audit, quotas, job dir, mTLS docs)
-- [x] SP1 prove path + host verify (`lean-tee-v2`); production default documented
+- [x] SP1 prove path + host verify (`lean-tee-v2`); production default + gated execute CI
+- [x] GuestProg v1/v2 + LoadProgram ACL / size limits
 - [x] Anchor Chain Strict Mode consumer + multi-guest mapping docs
 
 ## License

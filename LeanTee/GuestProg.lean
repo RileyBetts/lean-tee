@@ -23,32 +23,69 @@ def runtimeGuestId : String := "guest_prog_runtime"
 
 def runtimeCodeHash : ByteArray := Hash.sha256 runtimeCodeId.toUTF8
 
+/-- Hard cap on program bytes at LoadProgram / parse (override via env on server). -/
+def defaultMaxProgramBytes : Nat := 65536
+/-- Default max input size when program omits `max_input_bytes=`. -/
+def defaultMaxInputBytes : Nat := 65536
+
 structure Program where
   /-- Human label (not hashed into semantics beyond serialization). -/
   name : String := ""
   /-- Allowed action names without `action=` prefix (e.g. `vote.yes`). -/
   allow : List String
+  /-- Explicit deny list; checked before allow (deny wins). -/
+  deny : List String := []
+  /-- When true, inputs must contain an `interaction=` line. -/
+  requireInteraction : Bool := false
+  /-- Optional per-program input size cap (bytes). `none` ⇒ defaultMaxInputBytes. -/
+  maxInputBytes : Option Nat := none
   deriving Inhabited, BEq, Repr
+
+def Program.wireVersion (p : Program) : String :=
+  if p.deny.isEmpty && !p.requireInteraction && p.maxInputBytes.isNone then
+    "lean-tee-guest-prog/v1"
+  else
+    "lean-tee-guest-prog/v2"
 
 def Program.allowPrefixes (p : Program) : List String :=
   p.allow.map (fun a => s!"action={a}")
 
+def Program.denyPrefixes (p : Program) : List String :=
+  p.deny.map (fun a => s!"action={a}")
+
+def Program.effectiveMaxInput (p : Program) : Nat :=
+  p.maxInputBytes.getD defaultMaxInputBytes
+
 /-- Canonical UTF-8 serialization (stable; hashed as config). -/
 def Program.serialize (p : Program) : ByteArray :=
-  let allowLine :=
-    "allow=" ++ String.intercalate "," p.allow
-  let body :=
-    if p.name.isEmpty then
-      s!"lean-tee-guest-prog/v1\n{allowLine}\n"
-    else
-      s!"lean-tee-guest-prog/v1\nname={p.name}\n{allowLine}\n"
-  body.toUTF8
+  Id.run do
+    let ver := p.wireVersion
+    let allowLine := "allow=" ++ String.intercalate "," p.allow
+    let mut lines : List String := [ver]
+    if !p.name.isEmpty then
+      lines := lines ++ [s!"name={p.name}"]
+    lines := lines ++ [allowLine]
+    if !p.deny.isEmpty then
+      lines := lines ++ ["deny=" ++ String.intercalate "," p.deny]
+    if p.requireInteraction then
+      lines := lines ++ ["require_interaction=true"]
+    if let some n := p.maxInputBytes then
+      lines := lines ++ [s!"max_input_bytes={n}"]
+    return (String.intercalate "\n" lines ++ "\n").toUTF8
 
 def Program.hash (p : Program) : ByteArray :=
   Hash.sha256 p.serialize
 
-/-- Parse canonical bytes. Fail closed on unknown version / empty allow. -/
-def parse (b : ByteArray) : Except String Program := do
+def parseBoolFlag (s : String) : Except String Bool :=
+  match Guest.trimStr s with
+  | "true" | "1" | "yes" => pure true
+  | "false" | "0" | "no" => pure false
+  | other => throw s!"guest prog: bad bool={other}"
+
+/-- Parse canonical bytes. Fail closed on unknown version / empty allow / oversize. -/
+def parse (b : ByteArray) (maxProgramBytes : Nat := defaultMaxProgramBytes) : Except String Program := do
+  if b.size > maxProgramBytes then
+    throw s!"guest prog: program exceeds max_program_bytes={maxProgramBytes}"
   let text ← match String.fromUTF8? b with
     | some s => pure s
     | none => throw "guest prog: not utf-8"
@@ -56,33 +93,63 @@ def parse (b : ByteArray) : Except String Program := do
   match lines with
   | [] => throw "guest prog: empty"
   | ver :: rest =>
-    if ver != "lean-tee-guest-prog/v1" then
+    if ver != "lean-tee-guest-prog/v1" && ver != "lean-tee-guest-prog/v2" then
       throw s!"guest prog: unsupported version={ver}"
     let mut name := ""
     let mut allow : List String := []
+    let mut deny : List String := []
+    let mut requireInteraction := false
+    let mut maxInputBytes : Option Nat := none
     for line in rest do
       if line.startsWith "name=" then
         name := (line.splitOn "name=").getD 1 ""
       else if line.startsWith "allow=" then
         let rest := (line.splitOn "allow=").getD 1 ""
         allow := rest.splitOn "," |>.map Guest.trimStr |>.filter (· ≠ "")
+      else if line.startsWith "deny=" then
+        let rest := (line.splitOn "deny=").getD 1 ""
+        deny := rest.splitOn "," |>.map Guest.trimStr |>.filter (· ≠ "")
+      else if line.startsWith "require_interaction=" then
+        let rest := (line.splitOn "require_interaction=").getD 1 ""
+        requireInteraction ← parseBoolFlag rest
+      else if line.startsWith "max_input_bytes=" then
+        let rest := Guest.trimStr ((line.splitOn "max_input_bytes=").getD 1 "")
+        match rest.toNat? with
+        | some n => maxInputBytes := some n
+        | none => throw s!"guest prog: bad max_input_bytes={rest}"
       else if line.startsWith "#" then
         pure ()
       else
         throw s!"guest prog: bad line={line}"
     if allow.isEmpty then throw "guest prog: empty allow="
-    pure { name, allow }
+    if ver == "lean-tee-guest-prog/v1" then
+      if !deny.isEmpty || requireInteraction || maxInputBytes.isSome then
+        throw "guest prog: v1 cannot use deny/require_interaction/max_input_bytes"
+    pure { name, allow, deny, requireInteraction, maxInputBytes }
+
+def hasInteractionLine (text : String) : Bool :=
+  (text.splitOn "\n").any fun line => (Guest.trimStr line).startsWith "interaction="
 
 def run (p : Program) (inputs : ByteArray) : ByteArray :=
   let text := Guest.inputsAsString inputs
-  let allowed := p.allowPrefixes.any (fun pref => text.startsWith pref)
-  let decision := if allowed then "allow" else "deny"
+  let decision :=
+    if inputs.size > p.effectiveMaxInput then
+      "deny"
+    else if p.requireInteraction && !hasInteractionLine text then
+      "deny"
+    else if p.denyPrefixes.any (fun pref => text.startsWith pref) then
+      "deny"
+    else if p.allowPrefixes.any (fun pref => text.startsWith pref) then
+      "allow"
+    else
+      "deny"
   let reason := Hash.sha256 (Hash.concatLenPrefixed #[p.hash, inputs])
   s!"decision={decision}\nreason={Guest.hexEncode reason}\n".toUTF8
 
 /-- Run from raw program bytes (parse then execute). -/
-def runBytes (program inputs : ByteArray) : Except String ByteArray := do
-  let p ← parse program
+def runBytes (program inputs : ByteArray) (maxProgramBytes : Nat := defaultMaxProgramBytes) :
+    Except String ByteArray := do
+  let p ← parse program maxProgramBytes
   pure (run p inputs)
 
 end LeanTee.GuestProg

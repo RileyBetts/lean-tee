@@ -26,7 +26,9 @@ Execute(program_id | program, inputs) → TeeReceipt
 
 See [`proto/lean_tee/v1/tee.proto`](../proto/lean_tee/v1/tee.proto).
 
-## Program format (`lean-tee-guest-prog/v1`)
+## Program format
+
+### v1 (`lean-tee-guest-prog/v1`)
 
 ```
 lean-tee-guest-prog/v1
@@ -36,6 +38,46 @@ allow=vote.yes,vote.no
 
 Example: [`examples/guest_programs/demo_votes.prog`](../examples/guest_programs/demo_votes.prog).
 
+### v2 (`lean-tee-guest-prog/v2`)
+
+Adds deny-list, interaction gate, and per-program input size:
+
+```
+lean-tee-guest-prog/v2
+name=demo-votes-v2
+allow=vote.yes,vote.no
+deny=vote.admin
+require_interaction=true
+max_input_bytes=4096
+```
+
+Semantics:
+
+| Field | Meaning |
+| --- | --- |
+| `allow=` | Comma-separated actions; inputs starting with `action=<name>` may allow |
+| `deny=` | Checked **before** allow (deny wins) |
+| `require_interaction=true` | Inputs must include an `interaction=` line |
+| `max_input_bytes=N` | Oversized inputs → `decision=deny` |
+
+Serialize prefers **v1** when only `name`/`allow` are set (stable hashes for simple programs); any extended field forces **v2**.
+
+Hard caps (server): `LEAN_TEE_MAX_PROGRAM_BYTES` (default 65536) on LoadProgram / Execute program bytes.
+
+Example: [`examples/guest_programs/demo_votes_v2.prog`](../examples/guest_programs/demo_votes_v2.prog).
+
+## LoadProgram allow-list
+
+ACL file (see [`config/acl.example.txt`](../config/acl.example.txt)):
+
+```
+demo … guest_prog_runtime
+load_program demo
+```
+
+- If any `load_program` lines exist, only listed tenants may call `LoadProgram`.
+- If none, LoadProgram is unrestricted (Execute still needs `guest_prog_runtime` ACL when tenants are configured).
+
 ## Demo
 
 ```bash
@@ -43,23 +85,28 @@ bash scripts/guest_prog_demo.sh
 # or:
 lake build teeServer guestProgClient
 # teeServer …
-./.lake/build/bin/guestProgClient 127.0.0.1:50071 examples/guest_programs/demo_votes.prog vote.yes
+./.lake/build/bin/guestProgClient 127.0.0.1:50071 examples/guest_programs/demo_votes_v2.prog vote.yes
 ```
 
-## SP1
+## SP1 / production profile
 
-The RISC-V guest reads `(config_hash, inputs, program)`. Non-empty `program` ⇒ interpret GuestProg (and require `config_hash == SHA256(program)`). Empty `program` ⇒ legacy compliance operator.
+Production integrity is **`lean-tee-v2`** (SP1 host verify). Mock (`lean-tee-v1`) is **CI/demo only** — never the production default.
 
 ```bash
-# careful SP1 execute (writes empty program for legacy cases)
+# careful local: execute-only + optional one prove
 bash scripts/sp1_test_careful.sh
+# CI/nightly execute-only gate
+bash scripts/sp1_execute_ci.sh
 ```
+
+Workflow: [`.github/workflows/sp1-execute.yml`](../.github/workflows/sp1-execute.yml) (weekly + `workflow_dispatch`).
 
 ## Honest claims
 
 | Claim | Status |
 | --- | --- |
-| Lean defines program meaning | Yes |
+| Lean defines program meaning | Yes (v1 + v2 AST) |
 | gRPC to supply program to TEE API | Yes (`LoadProgram` / `Execute.program`) |
+| Size limits + LoadProgram tenant ACL | Yes |
 | Program runs on SP1 RISC-V interpreter | Yes (same ELF; program as public input) |
 | Arbitrary Lean theorems / full Lean kernel on RISC-V | No |

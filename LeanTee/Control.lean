@@ -14,22 +14,32 @@ structure TenantAcl where
 
 structure AclFile where
   tenants : Array TenantAcl := #[]
+  /-- Tenants allowed to call LoadProgram. Empty ⇒ no extra LoadProgram gate. -/
+  loadProgramTenants : Array String := #[]
   deriving Inhabited
 
-/-- Line format: `tenant_id guest_id [guest_id...]` (see config/acl.example.txt). -/
+/-- Line formats (see config/acl.example.txt):
+- `tenant_id guest_id [guest_id...]`
+- `load_program tenant_id [tenant_id...]` — allow-list for LoadProgram
+-/
 def loadAclFile (path : String) : IO AclFile := do
   let text ← IO.FS.readFile path
   let mut tenants : Array TenantAcl := #[]
+  let mut loadProgramTenants : Array String := #[]
   for line in text.splitOn "\n" do
     let t := Guest.trimStr line
     if t.isEmpty || t.startsWith "#" then continue
     let parts := t.splitOn " " |>.map Guest.trimStr |>.filter (· ≠ "")
     match parts with
     | [] => pure ()
+    | "load_program" :: rest =>
+      for tid in rest do
+        if !loadProgramTenants.contains tid then
+          loadProgramTenants := loadProgramTenants.push tid
     | tenant :: rest =>
       let guests := rest.toArray.filter fun g => (Guests.findBuiltin g).isSome
       tenants := tenants.push { tenantId := tenant, guests }
-  return { tenants }
+  return { tenants, loadProgramTenants }
 
 def aclAllows (acl : AclFile) (tenant guestId : String) : Bool :=
   if acl.tenants.isEmpty then true
@@ -39,6 +49,11 @@ def aclAllows (acl : AclFile) (tenant guestId : String) : Bool :=
     | some t =>
       if t.guests.isEmpty then true
       else t.guests.any (· == guestId)
+
+/-- Empty `loadProgramTenants` ⇒ unrestricted (LoadProgram still needs valid program bytes). -/
+def aclAllowsLoadProgram (acl : AclFile) (tenant : String) : Bool :=
+  if acl.loadProgramTenants.isEmpty then true
+  else acl.loadProgramTenants.any (· == tenant)
 
 structure QuotaState where
   windowStartMs : IO.Ref Nat

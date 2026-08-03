@@ -33,8 +33,9 @@ Normative fields (registry: [`config/guests/registry.json`](../config/guests/reg
 | `voting_operator` | `lean-tee/voting_operator/v1` | `vote.yes`, `vote.no` |
 | `onboarding_operator` | `lean-tee/onboarding_operator/v1` | `supplier.register`, `purchaser.approve`, `purchaser.reject` |
 | `trade_operator` | `lean-tee/trade_operator/v1` | `trade.submit` |
+| `guest_prog_runtime` | `lean-tee/guest_prog_runtime/v1` | Interpreter of Lean-specified GuestProg (not Lean source) |
 
-Unknown or disabled `guest_id` → error. For **Lean-specified programs** (not Lean source), use `LoadProgram` / `Execute.program` with runtime `guest_prog_runtime` — see [GUEST_PROG.md](GUEST_PROG.md).
+Unknown or disabled `guest_id` → error. Prefer `LoadProgram` / `Execute.program` / `program_id` for GuestProg (leave `guest_id` empty in that mode) — see [GUEST_PROG.md](GUEST_PROG.md).
 
 ## Services
 
@@ -52,9 +53,12 @@ Rust shared crypto: `lean_tee_receipt`. Guests: `lean_tee_compliance` + registry
 
 | Proto field | Meaning |
 | --- | --- |
-| `ExecuteRequest.config_hash` / `MeasureRequest.config_hash` | **Raw rules / config bytes**, not a precomputed digest. Server stores `configHash = SHA256(rules)` in the measurement. |
-| `ExecuteRequest.guest_id` / `MeasureRequest.guest_id` | Guest registry key (UTF-8). Empty → `compliance_operator`. |
-| `ExecuteRequest.inputs` | UTF-8 framing; see binding helpers below. |
+| `ExecuteRequest.config_hash` / `MeasureRequest.config_hash` | **Raw rules / config bytes**, not a precomputed digest. Server stores `configHash = SHA256(rules)` in the measurement. Ignored when program mode is active. |
+| `ExecuteRequest.guest_id` / `MeasureRequest.guest_id` | Guest registry key (UTF-8). Empty → `compliance_operator` unless `program` / `program_id` is set. |
+| `ExecuteRequest.program` / `MeasureRequest.program` | Inline GuestProg bytes (`lean-tee-guest-prog/v1` or `/v2`). Sets measurement to runtime `codeHash` + `configHash = SHA256(program)`. |
+| `ExecuteRequest.program_id` | Id returned by `LoadProgram` (hex of program hash). Alternative to inline `program`. |
+| `LoadProgramRequest.program` | GuestProg payload; reject if over `LEAN_TEE_MAX_PROGRAM_BYTES` (default 65536) or tenant not on ACL `load_program` list. |
+| `ExecuteRequest.inputs` | UTF-8 framing; see binding helpers below. GuestProg v2 may require `interaction=`. |
 | `TeeReceipt.result_hash` | Suite-domain length-prefixed hash over measurement + I/O + nonce |
 | `AcceptReceiptRequest.proof_ok` | Hint only for non-mock proofs; Verify re-checks mock locally and requires host-verified SP1 for v2. |
 | `AcceptReceiptRequest.policy_*` | Optional measurement allow-list entry; combined with server `LEAN_TEE_POLICY_FILE` |

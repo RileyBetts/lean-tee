@@ -1,0 +1,34 @@
+name: sp1-execute
+
+# Gated SP1 path: nightly + manual. Does execute-only (not full CPU prove) to stay
+# believable for lean-tee-v2 without OOM on typical runners.
+# Mock prove (lean-tee-v1) must never be the production / hero default.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1" # weekly Monday 06:17 UTC
+  workflow_dispatch:
+    inputs:
+      prove_one:
+        description: "Also run one prove (mock by default; set SP1_PROVE_HEAVY via repo vars carefully)"
+        type: boolean
+        default: false
+
+jobs:
+  sp1-execute-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install SP1 toolchain
+        run: |
+          set -euo pipefail
+          curl -L https://sp1up.succinct.xyz | bash
+          echo "$HOME/.sp1/bin" >> "$GITHUB_PATH"
+          "$HOME/.sp1/bin/sp1up" || sp1up
+      - name: SP1 execute-only
+        env:
+          SP1_PROVE_ONE: ${{ github.event_name == 'workflow_dispatch' && inputs.prove_one && '1' || '0' }}
+          CARGO_TERM_COLOR: always
+        run: bash scripts/sp1_execute_ci.sh

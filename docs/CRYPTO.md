@@ -16,9 +16,11 @@ Consumers choose a **named suite**, not an open plugin ABI. Unknown suites **fai
 
 | Suite id | Hash | Prove | Status |
 | --- | --- | --- | --- |
-| `sha256+mock` | SHA-256 | Mock digest | **Default**; ≡ empty `crypto_suite` / `lean-tee-v1` |
-| `sha256+sp1` | SHA-256 | SP1 proof commitment | `lean-tee-v2` |
+| `sha256+mock` | SHA-256 | Mock digest | Empty `crypto_suite` / CI receipts; **not** the production profile |
+| `sha256+sp1` | SHA-256 | SP1 proof commitment | Production prove (`lean-tee-v2`) |
 | `blake3+mock` | BLAKE3 | Mock digest over BLAKE3 domains | Optional; library + goldens |
+
+**Profile vs suite:** `LEAN_TEE_DEFAULT_PROFILE` defaults to **`lean-tee-v2`**. `ReceiptMeta.crypto_suite` empty still means **`sha256+mock`** on the wire (legacy / in-process mock Prove). Production deployments must emit `sha256+sp1` via a host-verified SP1 `prove_server`.
 
 Domain separation (preimage first chunk):
 
@@ -52,4 +54,5 @@ Within a suite, digests (`codeHash`, `configHash`, `resultHash`, mock `proof_ref
 
 ## Env
 
-- `LEAN_TEE_CRYPTO_SUITE` — preferred suite for producers that honor it (Rust clients / future Execute). Default `sha256+mock`.
+- `LEAN_TEE_CRYPTO_SUITE` — preferred suite for producers that honor it (Rust clients / future Execute). Empty / unset ⇒ `sha256+mock` on the receipt field (CI-friendly); prefer `sha256+sp1` with a real Prove backend.
+- `LEAN_TEE_DEFAULT_PROFILE` — operational profile hint (`lean-tee-v2` default); see [PRODUCT.md](PRODUCT.md).

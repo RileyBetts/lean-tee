@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import LeanTee.Services
 import LeanTee.Control
+import LeanTee.GuestProg
 import LeanTee.Grpc
 
 def parseHostPort (addr : String) : IO (String × UInt16) := do
@@ -56,8 +57,12 @@ def loadControl : IO LeanTee.Services.ServerControl := do
   let maxRps ← parseNatEnv "LEAN_TEE_MAX_RPS"
   let maxInflight ← parseNatEnv "LEAN_TEE_MAX_INFLIGHT"
   let metricsEnabled := (← IO.getEnv "LEAN_TEE_METRICS") == some "1"
-  -- Production hint (documented): LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2
-  let _profile := (← IO.getEnv "LEAN_TEE_DEFAULT_PROFILE").getD "lean-tee-v1"
+  -- Production default: lean-tee-v2. Mock (v1) is CI/demo only — never ship as prod hero.
+  let defaultProfile := (← IO.getEnv "LEAN_TEE_DEFAULT_PROFILE").getD "lean-tee-v2"
+  let maxProgramBytes :=
+    match ← parseNatEnv "LEAN_TEE_MAX_PROGRAM_BYTES" with
+    | some n => n
+    | none => LeanTee.GuestProg.defaultMaxProgramBytes
   return {
     apiKey
     presentedKey
@@ -68,6 +73,8 @@ def loadControl : IO LeanTee.Services.ServerControl := do
     maxRps
     maxInflight
     metricsEnabled
+    maxProgramBytes
+    defaultProfile
     quotas
     metrics
   }
@@ -90,6 +97,9 @@ def main : IO Unit := do
   let policy ← loadPolicy
   let ctrl ← loadControl
   let trustProofOk := (← IO.getEnv "LEAN_TEE_TRUST_PROOF_OK") == some "1"
+  IO.println s!"lean-tee profile={ctrl.defaultProfile} tenant={ctrl.tenant} max_program_bytes={ctrl.maxProgramBytes}"
+  if ctrl.defaultProfile == "lean-tee-v1" then
+    IO.println "WARN: lean-tee-v1 (mock) is CI/demo only — do not use as production default"
 
   match ← IO.getEnv "LEAN_TEE_PROVE_ADDR" with
   | some addr =>
@@ -100,14 +110,17 @@ def main : IO Unit := do
     s := LeanTee.Grpc.registerTeeExecute s
       (LeanTee.Services.handleExecute store progStore ctrl (some prove) (some sink))
     s := LeanTee.Grpc.registerTeeGetReceipt s (LeanTee.Services.handleGetReceipt store ctrl)
-    s := LeanTee.Grpc.registerTeeMeasure s fun req => pure (LeanTee.Services.handleMeasure req)
-    s := LeanTee.Grpc.registerTeeLoadProgram s (LeanTee.Services.handleLoadProgram progStore)
+    s := LeanTee.Grpc.registerTeeMeasure s fun req =>
+      pure (LeanTee.Services.handleMeasure req ctrl.maxProgramBytes)
+    s := LeanTee.Grpc.registerTeeLoadProgram s (LeanTee.Services.handleLoadProgram progStore ctrl)
     s := LeanTee.Grpc.registerTeeGetProgram s (LeanTee.Services.handleGetProgram progStore)
     s := LeanTee.Grpc.registerVerifyAccept s (LeanTee.Services.handleAccept policy ctrl trustProofOk)
     s := LeanTee.Grpc.registerAnchorSinkSubmit s (LeanTee.Services.handleSubmit sink)
     IO.println s!"lean-tee server 127.0.0.1:{port.toNat} (Prove → {host}:{p.toNat})"
     Grpc.Server.serveH2c s { host := "127.0.0.1", port }
   | none =>
+    if ctrl.defaultProfile == "lean-tee-v2" then
+      IO.println "WARN: lean-tee-v2 without LEAN_TEE_PROVE_ADDR uses in-process mock Prove — wire SP1 prove_server for production"
     let s := LeanTee.Services.mkIntegratedServer store progStore sink policy ctrl trustProofOk true
     IO.println s!"lean-tee server 127.0.0.1:{port.toNat} (in-process Prove)"
     Grpc.Server.serveH2c s { host := "127.0.0.1", port }

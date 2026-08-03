@@ -94,6 +94,10 @@ structure ServerControl where
   maxRps : Option Nat := none
   maxInflight : Option Nat := none
   metricsEnabled : Bool := false
+  /-- Cap for GuestProg bytes at LoadProgram / Execute (default 64 KiB). -/
+  maxProgramBytes : Nat := GuestProg.defaultMaxProgramBytes
+  /-- Documented profile: lean-tee-v1 (mock) or lean-tee-v2 (SP1). -/
+  defaultProfile : String := "lean-tee-v1"
   quotas : Control.QuotaState
   metrics : Control.Metrics
 
@@ -144,17 +148,28 @@ def buildReceipt (m : Measurement) (inputs outputs nonce proofRef : ByteArray) :
     }
   }
 
-def handleLoadProgram (store : ProgramStore) (req : LoadProgramRequest) :
+def handleLoadProgram (store : ProgramStore) (ctrl : ServerControl) (req : LoadProgramRequest) :
     IO (LoadProgramResponse × Grpc.Status) := do
+  match Control.checkApiKey ctrl.apiKey ctrl.presentedKey with
+  | .error e => return ({}, Grpc.Status.unauthenticated e)
+  | .ok () => pure ()
+  if !Control.aclAllowsLoadProgram ctrl.acl ctrl.tenant then
+    return ({}, Grpc.Status.permissionDenied s!"acl: tenant={ctrl.tenant} cannot LoadProgram")
   let raw := req.program.program
   if raw.isEmpty then
     return ({}, Grpc.Status.invalidArgument "empty program")
-  match GuestProg.parse raw with
+  if raw.size > ctrl.maxProgramBytes then
+    return ({}, Grpc.Status.invalidArgument
+      s!"guest prog: program exceeds max_program_bytes={ctrl.maxProgramBytes}")
+  match GuestProg.parse raw ctrl.maxProgramBytes with
   | .error e => return ({}, Grpc.Status.invalidArgument e)
   | .ok _ =>
     let h := Hash.sha256 raw
     let id := Guest.hexEncode h
     store.put id raw
+    if let some path := ctrl.auditPath then
+      Control.auditLine path
+        s!"\{ \"event\":\"load_program\", \"tenant\":\"{ctrl.tenant}\", \"program_id\":\"{id}\" }"
     return ({
       programId := id
       programHash := h
@@ -172,9 +187,10 @@ def handleGetProgram (store : ProgramStore) (req : GetProgramRequest) :
       programHash := Hash.sha256 raw
     }, Grpc.Status.ok)
 
-def handleMeasure (req : MeasureRequest) : MeasureResponse × Grpc.Status :=
+def handleMeasure (req : MeasureRequest) (maxProgramBytes : Nat := GuestProg.defaultMaxProgramBytes) :
+    MeasureResponse × Grpc.Status :=
   if !req.program.isEmpty then
-    match GuestProg.parse req.program with
+    match GuestProg.parse req.program maxProgramBytes with
     | .error e => ({ measurement := default }, Grpc.Status.invalidArgument e)
     | .ok _ =>
       let m : Measurement := {
@@ -210,7 +226,10 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
     | .ok p => pure p
   let (g, m, programBytes) ← match prog? with
     | some prog =>
-      match GuestProg.parse prog with
+      if prog.size > ctrl.maxProgramBytes then
+        return ({ jobId := "", status := s!"error:program exceeds max_program_bytes={ctrl.maxProgramBytes}" },
+          Grpc.Status.invalidArgument "program too large")
+      match GuestProg.parse prog ctrl.maxProgramBytes with
       | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.invalidArgument e)
       | .ok _ =>
         let g := Guests.guestProgRuntime
@@ -336,8 +355,8 @@ def mkIntegratedServer (store : JobStore) (progStore : ProgramStore) (sink : Sin
     let mut s := Grpc.Server.empty
     s := registerTeeExecute s (handleExecute store progStore ctrl none (some sink))
     s := registerTeeGetReceipt s (handleGetReceipt store ctrl)
-    s := registerTeeMeasure s fun req => pure (handleMeasure req)
-    s := registerTeeLoadProgram s (handleLoadProgram progStore)
+    s := registerTeeMeasure s fun req => pure (handleMeasure req ctrl.maxProgramBytes)
+    s := registerTeeLoadProgram s (handleLoadProgram progStore ctrl)
     s := registerTeeGetProgram s (handleGetProgram progStore)
     s := registerVerifyAccept s (handleAccept policy ctrl trustProofOk)
     s := registerAnchorSinkSubmit s (handleSubmit sink)

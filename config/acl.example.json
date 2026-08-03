@@ -7,12 +7,14 @@
         "compliance_operator",
         "voting_operator",
         "onboarding_operator",
-        "trade_operator"
+        "trade_operator",
+        "guest_prog_runtime"
       ]
     },
     {
       "tenant_id": "votes-only",
       "guests": ["voting_operator"]
     }
-  ]
+  ],
+  "load_program_tenants": ["demo"]
 }

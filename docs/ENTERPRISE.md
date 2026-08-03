@@ -8,12 +8,13 @@ Integrity-only enterprise control plane. **No sealed memory** — inputs/outputs
 | --- | --- | --- |
 | Guests | `LEAN_TEE_GUESTS_FILE` → [`config/guests/registry.json`](../config/guests/registry.json) | Builtin registry if unset |
 | Measurement policy | `LEAN_TEE_POLICY_FILE` | `codeHex configHex` lines |
-| Tenant ACL | `LEAN_TEE_ACL_FILE` → [`config/acl.example.txt`](../config/acl.example.txt) | tenant → allowed `guest_id`s |
+| Tenant ACL | `LEAN_TEE_ACL_FILE` → [`config/acl.example.txt`](../config/acl.example.txt) | tenant → allowed `guest_id`s; optional `load_program` tenants |
 | API key | `LEAN_TEE_API_KEY` | Clients send `LEAN_TEE_API_KEY` env to CLI/SDK; server rejects mismatch when set |
-| Audit | `LEAN_TEE_AUDIT_FILE` | Append-only JSONL Accept/Execute events |
+| Audit | `LEAN_TEE_AUDIT_FILE` | Append-only JSONL Accept/Execute/LoadProgram events |
 | Quotas | `LEAN_TEE_MAX_RPS`, `LEAN_TEE_MAX_INFLIGHT` | Per-process limits (default unlimited if unset) |
 | Job durability | `LEAN_TEE_JOB_DIR` | Persist receipts by `job_id` |
-| Prove profile | `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` | Production; use mock only in CI |
+| Prove profile | `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` | **Production default**; mock (`lean-tee-v1`) only in CI |
+| GuestProg size | `LEAN_TEE_MAX_PROGRAM_BYTES` | Default 65536; LoadProgram / Execute reject larger |
 | Host SP1 trust | `LEAN_TEE_TRUST_PROOF_OK=1` | Only on trusted host adapters |
 | Metrics | `LEAN_TEE_METRICS=1` | Log counters on Execute/Accept |
 
@@ -35,7 +36,9 @@ ACL file format (Lean parser): [`config/acl.example.txt`](../config/acl.example.
 
 1. If `LEAN_TEE_API_KEY` is set, request must present the same key (SDK/CLI env).
 2. If `LEAN_TEE_ACL_FILE` is set, `LEAN_TEE_TENANT` must be allowed to use the requested `guest_id`.
-3. Measurement policy still applies on Accept.
+3. If the ACL contains any `load_program <tenant>...` lines, only those tenants may call `LoadProgram`.
+4. Measurement policy still applies on Accept.
+5. GuestProg bytes must parse and stay under `LEAN_TEE_MAX_PROGRAM_BYTES`.
 
 ## Audit JSONL
 

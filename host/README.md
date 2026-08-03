@@ -25,9 +25,12 @@ CPU proving on a 16GB laptop previously locked the machine (~80%+ RAM). Prefer s
 
 ```bash
 export PATH="$HOME/.sp1/bin:$PATH"
+cd .. && bash scripts/sp1_execute_ci.sh            # execute-only (CI / weekly gate; no heavy prove)
 cd .. && bash scripts/sp1_test_careful.sh          # execute (cpu) + prove (mock) + Lean e2e
 SP1_PROVE_HEAVY=1 bash scripts/sp1_test_careful.sh # adds ONE real CPU prove (watch free -h)
 ```
+
+Production profile: `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` + `LEAN_TEE_PROVE_ADDR` to this `prove_server`. Mock is CI/dev only.
 
 Or manually:
 

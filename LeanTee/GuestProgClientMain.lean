@@ -49,7 +49,7 @@ def main (args : List String) : IO UInt32 := do
         IO.println s!"loaded program_id={lr.programId} runtime={lr.runtimeGuestId}"
         match ← tee.Execute {
             programId := lr.programId
-            inputs := s!"action={action}\n".toUTF8
+            inputs := s!"action={action}\ninteraction=guestProgClient\n".toUTF8
             nonce := ByteArray.empty
             submitToSink := false
           } with

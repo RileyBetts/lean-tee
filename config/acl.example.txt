@@ -2,3 +2,5 @@
 # Lines starting with # are comments.
 demo compliance_operator voting_operator onboarding_operator trade_operator guest_prog_runtime
 votes-only voting_operator
+# Tenants allowed to call LoadProgram (omit section ⇒ unrestricted LoadProgram).
+load_program demo
