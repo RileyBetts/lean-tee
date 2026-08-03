@@ -1803,6 +1803,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "lean_tee_guest_lean"
+version = "0.1.0"
+dependencies = [
+ "sp1-zkvm",
+]
+
+[[package]]
 name = "lean_tee_guest_lean_spike"
 version = "0.1.0"
 dependencies = [

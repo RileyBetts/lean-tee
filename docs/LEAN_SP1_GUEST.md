@@ -39,20 +39,27 @@ Phase 0 uses **UInt32-only** Lean exports **without** full `Init` runtime initia
 | Pure Lean entry | [`LeanTee/GuestSp1.lean`](../LeanTee/GuestSp1.lean) (`lean_tee_guest_run`) |
 | Portable SHA-256 | [`native/sha256_portable.c`](../native/sha256_portable.c) (same ABI as OpenSSL FFI) |
 | Runtime overlays | [`host/lean_sp1_runtime/`](../host/lean_sp1_runtime/) |
+| Minimal Init | [`host/lean_sp1_init_min/`](../host/lean_sp1_init_min/) + `scripts/sp1_lean_guest_build.sh` |
+| SP1 guest crate | [`host/guest_lean/`](../host/guest_lean/) |
 | Fetch / build | `scripts/sp1_lean_runtime_{fetch,build}.sh` → `.cache/lean-sp1-runtime/` |
 
 ```bash
 bash scripts/sp1_lean_runtime_fetch.sh
 bash scripts/sp1_lean_runtime_build.sh   # → .cache/lean-sp1-runtime/prefix/lib/libLean.a
+bash scripts/sp1_lean_guest_build.sh     # → .cache/lean-sp1-guest/libLeanTeeGuest.a
+cd host
+cargo build -p lean_tee_prove_server --release --features sp1 --bin sp1_lean_guest_smoke
+SP1_PROVER=cpu ./target/release/sp1_lean_guest_smoke
 ```
 
-Still required before compliance ELF execute-only:
+### Verified
 
-1. ~~**`LEAN_SP1` stubs** on Lean 4.32.1 `src/runtime`~~ — **done** (`libLean.a` via fetch/patch/build scripts)
-2. Compile Lean **Init** IR for SP1
-3. Compile Lake IR for `GuestSp1` + `Hash` + `Guest` + `Measurement` with [`native/sha256_portable.c`](../native/sha256_portable.c)
-4. Link into an SP1 guest crate via [`lean_guest_bridge.c`](../host/lean_sp1_runtime/lean_guest_bridge.c)
-5. Parity goldens vs Lean in-process / Rust twin
+- **Host:** Lake GuestSp1 C + Init subset (`lean -c` with toolchain oleans) + portable SHA links and runs: `decision=allow` for `action=vote.yes`.
+- **SP1:** `lean_initialize_runtime_module` execute-only OK; minimal `initialize_Init` (ByteArray.empty only) OK; `lean_string_to_utf8` + `lean_mark_persistent` OK.
+
+### Open blocker
+
+Module inits that use `lean_obj_once` / `lean_obj_once_cold` (e.g. `Hash.domainSeparator`) still trap under SP1 (`got unimplemented as opcode` → panic/`unimp`). Direct function-pointer calls and `string_to_utf8` succeed; the once-cold path does not. Next: replace once-cells for the guest closed values (or finish a proven SP1-safe `lean_obj_once_cold`).
 
 Runtime build (Lean **4.32.1**, not Anoma 4.22):
 

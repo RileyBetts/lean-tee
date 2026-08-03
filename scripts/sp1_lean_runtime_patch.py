@@ -296,9 +296,7 @@ def patch_debug_h(text: str) -> str:
 
 
 def patch_debug_cpp(text: str) -> str:
-    if text.lstrip().startswith(f"#ifdef {MARK}") or f"#ifdef {MARK}\nnamespace lean" in text[:200]:
-        return text
-    return f"""#ifdef {MARK}
+    stub_body = f"""#include <lean/lean.h>
 namespace lean {{
 void initialize_debug() {{}}
 void finalize_debug() {{}}
@@ -310,10 +308,24 @@ void invoke_debugger() {{}}
 bool has_violations() {{ return false; }}
 void enable_debug_dialog(bool) {{}}
 }}
-#else
-{text}
-#endif
+extern "C" LEAN_EXPORT void lean_notify_assert(const char * fileName, int line, const char * condition) {{
+    (void)fileName; (void)line; (void)condition;
+}}
 """
+    stub = f"#ifdef {MARK}\n{stub_body}#else\n"
+    if text.lstrip().startswith(f"#ifdef {MARK}"):
+        end = text.find("#else\n")
+        if end < 0:
+            raise SystemExit("debug.cpp: expected #else after LEAN_SP1 stub")
+        sp1_branch = text[:end]
+        if "lean_notify_assert" in sp1_branch:
+            return text
+        # Older stub without lean_notify_assert — replace the LEAN_SP1 branch.
+        rest = text[end + len("#else\n") :]
+        if rest.rstrip().endswith("#endif"):
+            return stub + rest
+        return stub + rest + "\n#endif\n"
+    return stub + text + "\n#endif\n"
 
 
 def patch_object_cpp(text: str) -> str:
@@ -718,11 +730,71 @@ def patch_compact_throws(path: Path) -> None:
     print(f"patched throws in {path}")
 
 
-def patch_object_atomics(text: str) -> str:
-    """std::atomic::wait/notify_one are C++20; spin on SP1."""
-    if "LEAN_SP1_ATOMIC_SPIN" in text:
+def patch_object_once_cold(text: str) -> str:
+    """Replace lean_obj_once_cold with a lock-free single-threaded version for SP1."""
+    marker = "LEAN_SP1_ONCE_COLD"
+    new_body = f"""extern "C" LEAN_EXPORT lean_object* lean_obj_once_cold(lean_object** loc, lean_once_cell_t* tok, lean_object* (*init)(void)) {{
+#if defined({MARK})
+    /* Do not key off *loc — BSS may be uninitialized on SP1. */
+    int *state = reinterpret_cast<int *>(&tok->state);
+    if (*state != 1) {{
+        *loc = init();
+        lean_mark_persistent(*loc);
+        *state = 1;
+    }}
+    return *loc;
+#else
+    lock_simple_atomic(tok->lock);
+    if (tok->state.load() != 1) {{
+        *loc = init();
+        lean_mark_persistent(*loc);
+        tok->state.store(1);
+    }}
+    unlock_simple_atomic(tok->lock);
+    return *loc;
+#endif
+}}"""
+    import re
+    # Replace any existing lean_obj_once_cold definition (including prior SP1 patch).
+    pat = re.compile(
+        r"extern \"C\" LEAN_EXPORT lean_object\* lean_obj_once_cold\(lean_object\*\* loc, lean_once_cell_t\* tok, lean_object\* \(\*init\)\(void\)\) \{.*?\n\}",
+        re.DOTALL,
+    )
+    if not pat.search(text):
+        print("warning: lean_obj_once_cold block not found", file=sys.stderr)
         return text
+    text = pat.sub(new_body, text, count=1)
+    if marker not in text:
+        text = f"/* {marker} */\n" + text
+    return text
+
+    """Single-threaded SP1: no-op locks (avoid libatomic / A-extension)."""
+    marker = "LEAN_SP1_ATOMIC_NOOP"
+    if marker in text:
+        return text
+    # Upgrade older spin patch if present.
+    if "LEAN_SP1_ATOMIC_SPIN" in text:
+        text = text.replace("/* LEAN_SP1_ATOMIC_SPIN */\n", "")
     old = """void lock_simple_atomic(std::atomic<int>& lock) {
+    while (true) {
+#if !defined(LEAN_SP1)
+        lock.wait(1);
+#endif
+        int should = 0;
+        if (lock.compare_exchange_strong(should, 1)) {
+            break;
+        }
+    }
+}
+
+void unlock_simple_atomic(std::atomic<int>& lock) {
+    lock.store(0);
+#if !defined(LEAN_SP1)
+    lock.notify_one();
+#endif
+}"""
+    # Also match pristine upstream (no LEAN_SP1 guards yet).
+    old_upstream = """void lock_simple_atomic(std::atomic<int>& lock) {
     while (true) {
         lock.wait(1);
         int should = 0;
@@ -737,27 +809,35 @@ void unlock_simple_atomic(std::atomic<int>& lock) {
     lock.notify_one();
 }"""
     new = f"""void lock_simple_atomic(std::atomic<int>& lock) {{
+#if defined({MARK})
+    (void)lock;
+#else
     while (true) {{
-#if !defined({MARK})
         lock.wait(1);
-#endif
         int should = 0;
         if (lock.compare_exchange_strong(should, 1)) {{
             break;
         }}
     }}
+#endif
 }}
 
 void unlock_simple_atomic(std::atomic<int>& lock) {{
+#if defined({MARK})
+    (void)lock;
+#else
     lock.store(0);
-#if !defined({MARK})
     lock.notify_one();
 #endif
 }}"""
-    if old not in text:
+    if old in text:
+        text = text.replace(old, new, 1)
+    elif old_upstream in text:
+        text = text.replace(old_upstream, new, 1)
+    else:
         print("warning: lock_simple_atomic block not found", file=sys.stderr)
         return text
-    return "/* LEAN_SP1_ATOMIC_SPIN */\n" + text.replace(old, new, 1)
+    return f"/* {marker} */\n" + text
 
 
 def patch_object_bit_cast(text: str) -> str:
@@ -831,6 +911,7 @@ def main() -> int:
     once(rt / "object.cpp", "", patch_object_cpp)
     once(rt / "object.cpp", "", patch_object_bit_cast)
     once(rt / "object.cpp", "", patch_object_atomics)
+    once(rt / "object.cpp", "", patch_object_once_cold)
     once(rt / "interrupt.cpp", "", patch_interrupt_cpp)
     once(rt / "mutex.cpp", "", patch_mutex_cpp)
     once(rt / "init_module.cpp", "", patch_init_module_cpp)

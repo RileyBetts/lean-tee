@@ -11,8 +11,8 @@ Anoma’s [lean-risc0-runtime](https://github.com/anoma/lean-risc0-runtime) targ
 | Fetch Lean `v4.32.1` `src/runtime` + `src/util` | `scripts/sp1_lean_runtime_fetch.sh` |
 | Apply `LEAN_SP1` stubs | `scripts/sp1_lean_runtime_patch.py` |
 | Compile cores → `libLean.a` | `scripts/sp1_lean_runtime_build.sh` (**works**) |
-| Init IR for SP1 | **TODO** |
-| Link GuestSp1 + portable sha256 | **TODO** |
+| Init IR subset for SP1 | `scripts/sp1_lean_guest_build.sh` (**works on host**) |
+| Link GuestSp1 + portable sha256 | `host/guest_lean` (**links**; SP1 execute blocked on `lean_obj_once_cold`) |
 
 ## Prerequisites
 

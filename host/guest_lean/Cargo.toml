@@ -1,0 +1,9 @@
+[package]
+name = "lean_tee_guest_lean"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Phase-1 SP1 guest: Lean→C compliance entry (no Rust twin semantics)"
+
+[dependencies]
+sp1-zkvm = "6.3.1"

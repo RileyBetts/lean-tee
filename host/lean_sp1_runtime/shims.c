@@ -25,7 +25,33 @@ unsigned int __atomic_fetch_add_4(volatile void *ptr, unsigned int val, int memo
   return old;
 }
 
-#define SBRK_MAX_HEAP (16 * 1024 * 1024)
+_Bool __atomic_compare_exchange_4(volatile void *ptr, void *expected, unsigned int desired,
+                                  _Bool weak, int success_memorder, int failure_memorder) {
+  (void)weak;
+  (void)success_memorder;
+  (void)failure_memorder;
+  uint32_t *p = (uint32_t *)ptr;
+  uint32_t *e = (uint32_t *)expected;
+  if (*p == *e) {
+    *p = desired;
+    return 1;
+  }
+  *e = *p;
+  return 0;
+}
+
+unsigned long long __atomic_exchange_8(volatile void *ptr, unsigned long long val, int memorder) {
+  (void)memorder;
+  uint64_t *p = (uint64_t *)ptr;
+  uint64_t old = *p;
+  *p = val;
+  return old;
+}
+
+/* libstdc++ globals want this under freestanding links. */
+void *__dso_handle = (void *)0;
+
+#define SBRK_MAX_HEAP (4 * 1024)
 static unsigned char sbrk_heap[SBRK_MAX_HEAP];
 static ptrdiff_t sbrk_bkrp = 0;
 

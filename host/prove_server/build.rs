@@ -6,6 +6,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         sp1_build::build_program("../guest_lean_spike");
         println!("cargo:rerun-if-changed=../guest_lean_spike");
         println!("cargo:rerun-if-changed=../guest_lean_spike/c");
+        sp1_build::build_program("../guest_lean");
+        println!("cargo:rerun-if-changed=../guest_lean");
+        println!("cargo:rerun-if-changed=../lean_sp1_runtime");
+        println!("cargo:rerun-if-changed=../lean_sp1_init_min");
     }
 
     let protoc = protoc_bin_vendored::protoc_bin_path()?;
