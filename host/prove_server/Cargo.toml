@@ -24,11 +24,6 @@ name = "sp1_lean_guest_smoke"
 path = "src/bin/sp1_lean_guest_smoke.rs"
 required-features = ["sp1"]
 
-[[bin]]
-name = "sp1_lean_init_smoke"
-path = "src/bin/sp1_lean_init_smoke.rs"
-required-features = ["sp1"]
-
 [features]
 default = []
 # Enable with `--features sp1` (needs cargo prove / sp1up).

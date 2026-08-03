@@ -55,11 +55,13 @@ SP1_PROVER=cpu ./target/release/sp1_lean_guest_smoke
 ### Verified
 
 - **Host:** Lake GuestSp1 C + Init subset (`lean -c` with toolchain oleans) + portable SHA links and runs: `decision=allow` for `action=vote.yes`.
-- **SP1:** `lean_initialize_runtime_module` execute-only OK; minimal `initialize_Init` (ByteArray.empty only) OK; `lean_string_to_utf8` + `lean_mark_persistent` OK.
+- **SP1 execute-only:** `sp1_lean_guest_smoke` matches Rust `run_compliance` (`decision=allow`, ~85k cycles) for the same inputs.
 
-### Open blocker
+### SP1 FENCE note
 
-Module inits that use `lean_obj_once` / `lean_obj_once_cold` (e.g. `Hash.domainSeparator`) still trap under SP1 (`got unimplemented as opcode` → panic/`unimp`). Direct function-pointer calls and `string_to_utf8` succeed; the once-cold path does not. Next: replace once-cells for the guest closed values (or finish a proven SP1-safe `lean_obj_once_cold`).
+SP1 does not implement RISC-V `FENCE`. Lean 4.32’s `lean_obj_once` inlines a C11 `_Atomic` seq_cst load that emits `fence` → `got unimplemented as opcode`. The LEAN_SP1 patches demote `lean_once_cell_t` to plain `int` and make `*_once_cold` fence-free; `scripts/sp1_lean_runtime_build.sh` overlays the patched `lean.h` into the runtime prefix.
+
+Diagnostic bisect helper: [`host/lean_sp1_runtime/once_probe.c`](../host/lean_sp1_runtime/once_probe.c).
 
 Runtime build (Lean **4.32.1**, not Anoma 4.22):
 

@@ -11,8 +11,8 @@ Anoma’s [lean-risc0-runtime](https://github.com/anoma/lean-risc0-runtime) targ
 | Fetch Lean `v4.32.1` `src/runtime` + `src/util` | `scripts/sp1_lean_runtime_fetch.sh` |
 | Apply `LEAN_SP1` stubs | `scripts/sp1_lean_runtime_patch.py` |
 | Compile cores → `libLean.a` | `scripts/sp1_lean_runtime_build.sh` (**works**) |
-| Init IR subset for SP1 | `scripts/sp1_lean_guest_build.sh` (**works on host**) |
-| Link GuestSp1 + portable sha256 | `host/guest_lean` (**links**; SP1 execute blocked on `lean_obj_once_cold`) |
+| Init IR subset for SP1 | `scripts/sp1_lean_guest_build.sh` (**works**) |
+| Link GuestSp1 + portable sha256 | `host/guest_lean` (**works**; `sp1_lean_guest_smoke` execute-only OK) |
 
 ## Prerequisites
 
@@ -34,6 +34,8 @@ bash scripts/sp1_lean_runtime_build.sh
 | --- | --- |
 | `shims.c` | `_sbrk`, atomics, unwind / POSIX stubs for the guest |
 | `lean_guest_bridge.c` | ByteArray bridge for `lean_tee_guest_run` |
+| `runtime_extern_stubs.c` | Missing runtime helpers (`lean_list_to_array`, …) |
+| `once_probe.c` | Optional FENCE/once-cell bisect helper |
 | `include/lean/config.h` | Lean 4.32.1 / SP1 platform config |
 
 Fetched + patched sources live under `.cache/lean-sp1-runtime/` (gitignored).

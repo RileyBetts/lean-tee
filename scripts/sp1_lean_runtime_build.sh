@@ -23,6 +23,10 @@ cp -f "$ROOT/host/lean_sp1_runtime/include/lean/config.h" "$PREFIX/include/lean/
 rm -f "$PREFIX/include/lean/version.h"
 cp -f "$ROOT/host/lean_sp1_runtime/include/lean/version.h" "$PREFIX/include/lean/version.h"
 cp -f "$ROOT/host/lean_sp1_runtime/include/githash.h" "$PREFIX/include/githash.h"
+# Overlay fence-free once-cell lean.h from the patched Lean tree (SP1 has no FENCE).
+if [[ -f "$SRC/src/include/lean/lean.h" ]]; then
+  cp -f "$SRC/src/include/lean/lean.h" "$PREFIX/include/lean/lean.h"
+fi
 
 # alloca for LEAN_ALLOCA on bare-metal RISC-V
 ALLOCA_FLAGS=()

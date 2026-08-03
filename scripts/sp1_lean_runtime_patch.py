@@ -730,45 +730,8 @@ def patch_compact_throws(path: Path) -> None:
     print(f"patched throws in {path}")
 
 
-def patch_object_once_cold(text: str) -> str:
-    """Replace lean_obj_once_cold with a lock-free single-threaded version for SP1."""
-    marker = "LEAN_SP1_ONCE_COLD"
-    new_body = f"""extern "C" LEAN_EXPORT lean_object* lean_obj_once_cold(lean_object** loc, lean_once_cell_t* tok, lean_object* (*init)(void)) {{
-#if defined({MARK})
-    /* Do not key off *loc — BSS may be uninitialized on SP1. */
-    int *state = reinterpret_cast<int *>(&tok->state);
-    if (*state != 1) {{
-        *loc = init();
-        lean_mark_persistent(*loc);
-        *state = 1;
-    }}
-    return *loc;
-#else
-    lock_simple_atomic(tok->lock);
-    if (tok->state.load() != 1) {{
-        *loc = init();
-        lean_mark_persistent(*loc);
-        tok->state.store(1);
-    }}
-    unlock_simple_atomic(tok->lock);
-    return *loc;
-#endif
-}}"""
-    import re
-    # Replace any existing lean_obj_once_cold definition (including prior SP1 patch).
-    pat = re.compile(
-        r"extern \"C\" LEAN_EXPORT lean_object\* lean_obj_once_cold\(lean_object\*\* loc, lean_once_cell_t\* tok, lean_object\* \(\*init\)\(void\)\) \{.*?\n\}",
-        re.DOTALL,
-    )
-    if not pat.search(text):
-        print("warning: lean_obj_once_cold block not found", file=sys.stderr)
-        return text
-    text = pat.sub(new_body, text, count=1)
-    if marker not in text:
-        text = f"/* {marker} */\n" + text
-    return text
-
-    """Single-threaded SP1: no-op locks (avoid libatomic / A-extension)."""
+def patch_object_atomics(text: str) -> str:
+    """Single-threaded SP1: no-op locks (avoid libatomic / A-extension / FENCE)."""
     marker = "LEAN_SP1_ATOMIC_NOOP"
     if marker in text:
         return text
@@ -793,7 +756,6 @@ void unlock_simple_atomic(std::atomic<int>& lock) {
     lock.notify_one();
 #endif
 }"""
-    # Also match pristine upstream (no LEAN_SP1 guards yet).
     old_upstream = """void lock_simple_atomic(std::atomic<int>& lock) {
     while (true) {
         lock.wait(1);
@@ -838,6 +800,121 @@ void unlock_simple_atomic(std::atomic<int>& lock) {{
         print("warning: lock_simple_atomic block not found", file=sys.stderr)
         return text
     return f"/* {marker} */\n" + text
+
+
+def patch_object_once_cold(text: str) -> str:
+    """Replace *once_cold helpers with fence-free single-threaded bodies for SP1.
+
+    SP1 does not implement FENCE; C++ std::atomic seq_cst load/store emit fence
+    and trap at execute time.
+    """
+    import re
+
+    marker = "LEAN_SP1_ONCE_COLD"
+
+    def sp1_body(ret_ty: str, assign: str, mark_persistent: bool) -> str:
+        persist = "        lean_mark_persistent(*loc);\n" if mark_persistent else ""
+        return f"""#if defined({MARK})
+    int *state = reinterpret_cast<int *>(&tok->state);
+    if (*state != 1) {{
+        {assign}
+{persist}        *state = 1;
+    }}
+    return *loc;
+#else
+    lock_simple_atomic(tok->lock);
+    if (tok->state.load() != 1) {{
+        {assign}
+{persist}        tok->state.store(1);
+    }}
+    unlock_simple_atomic(tok->lock);
+    return *loc;
+#endif"""
+
+    specs = [
+        (
+            r"extern \"C\" LEAN_EXPORT lean_object\* lean_obj_once_cold\(lean_object\*\* loc, lean_once_cell_t\* tok, lean_object\* \(\*init\)\(void\)\) \{.*?\n\}",
+            "extern \"C\" LEAN_EXPORT lean_object* lean_obj_once_cold(lean_object** loc, lean_once_cell_t* tok, lean_object* (*init)(void)) {\n"
+            + sp1_body("lean_object*", "*loc = init();", True)
+            + "\n}",
+        ),
+        (
+            r"extern \"C\" LEAN_EXPORT uint8_t lean_uint8_once_cold\(uint8_t\* loc, lean_once_cell_t\* tok, uint8_t \(\*init\)\(void\)\) \{.*?\n\}",
+            "extern \"C\" LEAN_EXPORT uint8_t lean_uint8_once_cold(uint8_t* loc, lean_once_cell_t* tok, uint8_t (*init)(void)) {\n"
+            + sp1_body("uint8_t", "*loc = init();", False)
+            + "\n}",
+        ),
+        (
+            r"extern \"C\" LEAN_EXPORT uint16_t lean_uint16_once_cold\(uint16_t\* loc, lean_once_cell_t\* tok, uint16_t \(\*init\)\(void\)\) \{.*?\n\}",
+            "extern \"C\" LEAN_EXPORT uint16_t lean_uint16_once_cold(uint16_t* loc, lean_once_cell_t* tok, uint16_t (*init)(void)) {\n"
+            + sp1_body("uint16_t", "*loc = init();", False)
+            + "\n}",
+        ),
+        (
+            r"extern \"C\" LEAN_EXPORT uint32_t lean_uint32_once_cold\(uint32_t\* loc, lean_once_cell_t\* tok, uint32_t \(\*init\)\(void\)\) \{.*?\n\}",
+            "extern \"C\" LEAN_EXPORT uint32_t lean_uint32_once_cold(uint32_t* loc, lean_once_cell_t* tok, uint32_t (*init)(void)) {\n"
+            + sp1_body("uint32_t", "*loc = init();", False)
+            + "\n}",
+        ),
+        (
+            r"extern \"C\" LEAN_EXPORT uint64_t lean_uint64_once_cold\(uint64_t\* loc, lean_once_cell_t\* tok, uint64_t \(\*init\)\(void\)\) \{.*?\n\}",
+            "extern \"C\" LEAN_EXPORT uint64_t lean_uint64_once_cold(uint64_t* loc, lean_once_cell_t* tok, uint64_t (*init)(void)) {\n"
+            + sp1_body("uint64_t", "*loc = init();", False)
+            + "\n}",
+        ),
+        (
+            r"extern \"C\" LEAN_EXPORT size_t lean_usize_once_cold\(size_t\* loc, lean_once_cell_t\* tok, size_t \(\*init\)\(void\)\) \{.*?\n\}",
+            "extern \"C\" LEAN_EXPORT size_t lean_usize_once_cold(size_t* loc, lean_once_cell_t* tok, size_t (*init)(void)) {\n"
+            + sp1_body("size_t", "*loc = init();", False)
+            + "\n}",
+        ),
+        (
+            r"extern \"C\" LEAN_EXPORT float lean_float32_once_cold\(float\* loc, lean_once_cell_t\* tok, float \(\*init\)\(void\)\) \{.*?\n\}",
+            "extern \"C\" LEAN_EXPORT float lean_float32_once_cold(float* loc, lean_once_cell_t* tok, float (*init)(void)) {\n"
+            + sp1_body("float", "*loc = init();", False)
+            + "\n}",
+        ),
+        (
+            r"extern \"C\" LEAN_EXPORT double lean_float_once_cold\(double\* loc, lean_once_cell_t\* tok, double \(\*init\)\(void\)\) \{.*?\n\}",
+            "extern \"C\" LEAN_EXPORT double lean_float_once_cold(double* loc, lean_once_cell_t* tok, double (*init)(void)) {\n"
+            + sp1_body("double", "*loc = init();", False)
+            + "\n}",
+        ),
+    ]
+    for pat_s, repl in specs:
+        pat = re.compile(pat_s, re.DOTALL)
+        if not pat.search(text):
+            print(f"warning: once_cold pattern not found: {pat_s[:60]}...", file=sys.stderr)
+            continue
+        text = pat.sub(repl, text, count=1)
+    if marker not in text:
+        text = f"/* {marker} */\n" + text
+    return text
+
+
+def patch_lean_h(text: str) -> str:
+    """SP1 has no FENCE: demote once-cell atomics so inlined lean_obj_once is fence-free."""
+    marker = "LEAN_SP1_ONCE_CELL"
+    if marker in text:
+        return text
+    old = """typedef struct {
+    _Atomic(int) state;
+    _Atomic(int) lock;
+} lean_once_cell_t;"""
+    new = f"""typedef struct {{
+#if defined({MARK})
+    /* Plain ints: C11 _Atomic seq_cst loads emit FENCE, which SP1 traps on. */
+    int state;
+    int lock;
+#else
+    _Atomic(int) state;
+    _Atomic(int) lock;
+#endif
+}} lean_once_cell_t;"""
+    if old not in text:
+        print("warning: lean_once_cell_t block not found", file=sys.stderr)
+        return text
+    return f"/* {marker} */\n" + text.replace(old, new, 1)
 
 
 def patch_object_bit_cast(text: str) -> str:
@@ -912,6 +989,11 @@ def main() -> int:
     once(rt / "object.cpp", "", patch_object_bit_cast)
     once(rt / "object.cpp", "", patch_object_atomics)
     once(rt / "object.cpp", "", patch_object_once_cold)
+    lean_h = root / "src" / "include" / "lean" / "lean.h"
+    if lean_h.exists():
+        once(lean_h, "", patch_lean_h)
+    else:
+        print(f"warning: {lean_h} missing — once-cell FENCE patch skipped", file=sys.stderr)
     once(rt / "interrupt.cpp", "", patch_interrupt_cpp)
     once(rt / "mutex.cpp", "", patch_mutex_cpp)
     once(rt / "init_module.cpp", "", patch_init_module_cpp)
