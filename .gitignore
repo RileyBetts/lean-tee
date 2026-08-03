@@ -8,3 +8,5 @@ clients/rust/target/
 __pycache__/
 *.pyc
 .venv/
+.cache/
+

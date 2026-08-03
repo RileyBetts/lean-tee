@@ -5,7 +5,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 namespace LeanTee.Hash
 
-/-- SHA-256 via OpenSSL (`native/sha256_ffi.c`). Returns 32 bytes, or empty on failure. -/
+/-- SHA-256 via C FFI (`native/sha256_ffi.c` OpenSSL on host Lake builds;
+    `native/sha256_portable.c` for SP1 guest — same `lean_tee_sha256` symbol).
+    Returns 32 bytes, or empty on failure (OpenSSL path only). -/
 @[extern "lean_tee_sha256"]
 opaque sha256 : ByteArray → ByteArray
 

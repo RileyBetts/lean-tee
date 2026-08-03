@@ -30,14 +30,37 @@ SP1_PROVER=cpu ./target/release/sp1_lean_spike_smoke
 # or: CARGO_TARGET_DIR=… ./$CARGO_TARGET_DIR/release/sp1_lean_spike_smoke
 ```
 
-Phase 0 uses **UInt32-only** Lean exports **without** full `Init` runtime initialization (same idea as Anoma’s lightweight RISC0 Lean example). That is enough to prove the compile/link/execute pipeline; compliance/`ByteArray` need the runtime workstream next.
+Phase 0 uses **UInt32-only** Lean exports **without** full `Init` runtime initialization (same idea as Anoma’s lightweight RISC0 Lean example). Verified: `sp1_lean_spike_smoke OK tag=0x4c535031 sum=42`.
+
+## Phase 1 (in progress) — runtime + compliance entry
+
+| Piece | Path |
+| --- | --- |
+| Pure Lean entry | [`LeanTee/GuestSp1.lean`](../LeanTee/GuestSp1.lean) (`lean_tee_guest_run`) |
+| Portable SHA-256 | [`native/sha256_portable.c`](../native/sha256_portable.c) (same ABI as OpenSSL FFI) |
+| Runtime overlays | [`host/lean_sp1_runtime/`](../host/lean_sp1_runtime/) |
+| Fetch / build | `scripts/sp1_lean_runtime_{fetch,build}.sh` → `.cache/lean-sp1-runtime/` |
+
+```bash
+bash scripts/sp1_lean_runtime_fetch.sh
+bash scripts/sp1_lean_runtime_build.sh   # → .cache/lean-sp1-runtime/prefix/lib/libLean.a
+```
+
+Still required before compliance ELF execute-only:
+
+1. **`LEAN_SP1` stubs** on Lean 4.32.1 `src/runtime` (Anoma’s `LEAN_RISC0` idea; do not use their 4.22 tree as-is — ST-ref ABI diverged)
+2. Compile Lean **Init** IR for SP1
+3. Compile Lake IR for `GuestSp1` + `Hash` + `Guest` + `Measurement` with [`native/sha256_portable.c`](../native/sha256_portable.c)
+4. Link into an SP1 guest crate via [`lean_guest_bridge.c`](../host/lean_sp1_runtime/lean_guest_bridge.c)
+5. Parity goldens vs Lean in-process / Rust twin
+
+Known: stock runtime compile under SP1 g++ fails on `thread.h` (`std::adopt_lock_t` under `-fno-exceptions`), `sys/mman.h`, emscripten debug hooks, etc. — exactly the surface the stubs must cover.
 
 ## Later phases
 
-1. Minimal Lean runtime for SP1 (allocator, RC, ByteArray, …)
-2. Lean compliance oracle in guest
-3. Lean GuestProg in guest
-4. Retire Rust twin as measured guest; new `code_id`s
+1. Lean GuestProg in the same ELF
+2. Retire Rust twin as measured guest; new `code_id`s
+3. Stretch: larger Init / kernel-like surface
 
 ## Non-goals (yet)
 
