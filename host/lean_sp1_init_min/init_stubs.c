@@ -1,5 +1,6 @@
 #include <lean/lean.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define STUB_INIT(name)                                                                                \
   LEAN_EXPORT lean_object *name(uint8_t builtin) {                                                     \
@@ -36,8 +37,16 @@ STUB_INIT(runtime_initialize_Init_Grind_Tactics)
 STUB_INIT(runtime_initialize_Init_SimpLemmas)
 STUB_INIT(runtime_initialize_Init_WFTactics)
 
-/* Used only on the List.get! panic path. */
+/* Used on panic paths and (historically) Nat→String; must be real for GuestProg serialize. */
 LEAN_EXPORT lean_object *l_Nat_reprFast(lean_object *n) {
-  (void)n;
-  return lean_mk_string("nat");
+  if (lean_is_scalar(n)) {
+    size_t v = lean_unbox(n);
+    char buf[32];
+    int len = snprintf(buf, sizeof(buf), "%zu", v);
+    if (len < 0)
+      return lean_mk_string("0");
+    return lean_mk_string_from_bytes(buf, (size_t)len);
+  }
+  /* BigNat path: fall back (GuestProg only needs small caps). */
+  return lean_mk_string("0");
 }

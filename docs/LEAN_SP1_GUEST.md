@@ -32,11 +32,12 @@ SP1_PROVER=cpu ./target/release/sp1_lean_spike_smoke
 
 Phase 0 uses **UInt32-only** Lean exports **without** full `Init` runtime initialization (same idea as Anoma’s lightweight RISC0 Lean example). Verified: `sp1_lean_spike_smoke OK tag=0x4c535031 sum=42`.
 
-## Phase 1 (in progress) — runtime + compliance entry
+## Phase 1–2 — runtime + compliance + GuestProg
 
 | Piece | Path |
 | --- | --- |
 | Pure Lean entry | [`LeanTee/GuestSp1.lean`](../LeanTee/GuestSp1.lean) (`lean_tee_guest_run`) |
+| GuestProg | [`LeanTee/GuestProg.lean`](../LeanTee/GuestProg.lean) (slimmed for SP1 Init) |
 | Portable SHA-256 | [`native/sha256_portable.c`](../native/sha256_portable.c) (same ABI as OpenSSL FFI) |
 | Runtime overlays | [`host/lean_sp1_runtime/`](../host/lean_sp1_runtime/) |
 | Minimal Init | [`host/lean_sp1_init_min/`](../host/lean_sp1_init_min/) + `scripts/sp1_lean_guest_build.sh` |
@@ -48,18 +49,23 @@ bash scripts/sp1_lean_runtime_fetch.sh
 bash scripts/sp1_lean_runtime_build.sh   # → .cache/lean-sp1-runtime/prefix/lib/libLean.a
 bash scripts/sp1_lean_guest_build.sh     # → .cache/lean-sp1-guest/libLeanTeeGuest.a
 cd host
-cargo build -p lean_tee_prove_server --release --features sp1 --bin sp1_lean_guest_smoke
+cargo build -p lean_tee_prove_server --release --features sp1 \
+  --bin sp1_lean_guest_smoke --bin sp1_lean_guestprog_smoke
 SP1_PROVER=cpu ./target/release/sp1_lean_guest_smoke
+SP1_PROVER=cpu ./target/release/sp1_lean_guestprog_smoke
 ```
 
 ### Verified
 
-- **Host:** Lake GuestSp1 C + Init subset (`lean -c` with toolchain oleans) + portable SHA links and runs: `decision=allow` for `action=vote.yes`.
-- **SP1 execute-only:** `sp1_lean_guest_smoke` matches Rust `run_compliance` (`decision=allow`, ~85k cycles) for the same inputs.
+- **Host:** Lake GuestSp1 C + Init subset + portable SHA: `decision=allow` for `action=vote.yes`.
+- **SP1 compliance (empty program):** `sp1_lean_guest_smoke` matches Rust `run_compliance`.
+- **SP1 GuestProg (non-empty program):** `sp1_lean_guestprog_smoke` matches Rust `run_measured` for v1 allow/deny and v2 allow / miss-interaction / deny-wins.
 
 ### SP1 FENCE note
 
 SP1 does not implement RISC-V `FENCE`. Lean 4.32’s `lean_obj_once` inlines a C11 `_Atomic` seq_cst load that emits `fence` → `got unimplemented as opcode`. The LEAN_SP1 patches demote `lean_once_cell_t` to plain `int` and make `*_once_cold` fence-free; `scripts/sp1_lean_runtime_build.sh` overlays the patched `lean.h` into the runtime prefix.
+
+Also: GuestProg avoids heavy Init (`String.intercalate` / `Slice`) and uses a real `l_Nat_reprFast` (or `natToDec`) so v2 `max_input_bytes=` hashes match Rust.
 
 Diagnostic bisect helper: [`host/lean_sp1_runtime/once_probe.c`](../host/lean_sp1_runtime/once_probe.c).
 
@@ -73,9 +79,8 @@ bash scripts/sp1_lean_runtime_build.sh   # → .cache/lean-sp1-runtime/prefix/li
 
 ## Later phases
 
-1. Lean GuestProg in the same ELF
-2. Retire Rust twin as measured guest; new `code_id`s
-3. Stretch: larger Init / kernel-like surface
+1. Retire Rust twin as measured guest; new `code_id`s
+2. Stretch: larger Init / kernel-like surface
 
 ## Non-goals (yet)
 

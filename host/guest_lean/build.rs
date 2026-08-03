@@ -12,6 +12,7 @@ fn main() {
 
     println!("cargo:rerun-if-changed=../../scripts/sp1_lean_guest_build.sh");
     println!("cargo:rerun-if-changed=../../LeanTee/GuestSp1.lean");
+    println!("cargo:rerun-if-changed=../../LeanTee/GuestProg.lean");
     println!("cargo:rerun-if-changed=../../LeanTee/Guest.lean");
     println!("cargo:rerun-if-changed=../../LeanTee/Hash.lean");
     println!("cargo:rerun-if-changed=../../native/sha256_portable.c");

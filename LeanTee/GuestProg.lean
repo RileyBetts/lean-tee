@@ -39,7 +39,8 @@ structure Program where
   requireInteraction : Bool := false
   /-- Optional per-program input size cap (bytes). `none` ⇒ defaultMaxInputBytes. -/
   maxInputBytes : Option Nat := none
-  deriving Inhabited, BEq, Repr
+  deriving Inhabited
+  -- No BEq/Repr: those pull Init.Meta / Syntax specializations into the SP1 link set.
 
 def Program.wireVersion (p : Program) : String :=
   if p.deny.isEmpty && !p.requireInteraction && p.maxInputBytes.isNone then
@@ -56,22 +57,52 @@ def Program.denyPrefixes (p : Program) : List String :=
 def Program.effectiveMaxInput (p : Program) : Nat :=
   p.maxInputBytes.getD defaultMaxInputBytes
 
+/-- Local join — avoids `String.intercalate` (Init.Data.String.Defs → heavy SP1 Init). -/
+private def joinSep (sep : String) : List String → String
+  | [] => ""
+  | x :: xs => xs.foldl (fun acc s => acc ++ sep ++ s) x
+
+/-- Decimal Nat parser without `String.toNat?` / `String.Slice` (heavy Init). -/
+private def parseNatDec? (s : String) : Option Nat :=
+  if s.isEmpty then none
+  else Id.run do
+    let mut n : Nat := 0
+    let mut i : Nat := 0
+    while i < s.length do
+      let c := s.get! ⟨i⟩
+      let d := c.toNat
+      if d < '0'.toNat || d > '9'.toNat then return none
+      n := n * 10 + (d - '0'.toNat)
+      i := i + 1
+    return some n
+
+/-- Decimal digits without `Nat.repr` (SP1 stubbed `Nat.reprFast` historically). -/
+private def natToDec (n : Nat) : String :=
+  if n == 0 then "0"
+  else Id.run do
+    let mut digits : List Char := []
+    let mut x := n
+    while x > 0 do
+      digits := Char.ofNat ('0'.toNat + x % 10) :: digits
+      x := x / 10
+    return String.ofList digits
+
 /-- Canonical UTF-8 serialization (stable; hashed as config). -/
 def Program.serialize (p : Program) : ByteArray :=
   Id.run do
     let ver := p.wireVersion
-    let allowLine := "allow=" ++ String.intercalate "," p.allow
+    let allowLine := "allow=" ++ joinSep "," p.allow
     let mut lines : List String := [ver]
     if !p.name.isEmpty then
       lines := lines ++ [s!"name={p.name}"]
     lines := lines ++ [allowLine]
     if !p.deny.isEmpty then
-      lines := lines ++ ["deny=" ++ String.intercalate "," p.deny]
+      lines := lines ++ ["deny=" ++ joinSep "," p.deny]
     if p.requireInteraction then
       lines := lines ++ ["require_interaction=true"]
     if let some n := p.maxInputBytes then
-      lines := lines ++ [s!"max_input_bytes={n}"]
-    return (String.intercalate "\n" lines ++ "\n").toUTF8
+      lines := lines ++ ["max_input_bytes=" ++ natToDec n]
+    return (joinSep "\n" lines ++ "\n").toUTF8
 
 def Program.hash (p : Program) : ByteArray :=
   Hash.sha256 p.serialize
@@ -114,7 +145,7 @@ def parse (b : ByteArray) (maxProgramBytes : Nat := defaultMaxProgramBytes) : Ex
         requireInteraction ← parseBoolFlag rest
       else if line.startsWith "max_input_bytes=" then
         let rest := Guest.trimStr ((line.splitOn "max_input_bytes=").getD 1 "")
-        match rest.toNat? with
+        match parseNatDec? rest with
         | some n => maxInputBytes := some n
         | none => throw s!"guest prog: bad max_input_bytes={rest}"
       else if line.startsWith "#" then

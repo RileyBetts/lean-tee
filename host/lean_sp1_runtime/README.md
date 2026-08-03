@@ -12,7 +12,7 @@ Anoma’s [lean-risc0-runtime](https://github.com/anoma/lean-risc0-runtime) targ
 | Apply `LEAN_SP1` stubs | `scripts/sp1_lean_runtime_patch.py` |
 | Compile cores → `libLean.a` | `scripts/sp1_lean_runtime_build.sh` (**works**) |
 | Init IR subset for SP1 | `scripts/sp1_lean_guest_build.sh` (**works**) |
-| Link GuestSp1 + portable sha256 | `host/guest_lean` (**works**; `sp1_lean_guest_smoke` execute-only OK) |
+| Link GuestSp1 + GuestProg + portable sha256 | `host/guest_lean` (**works**; compliance + GuestProg execute-only smokes OK) |
 
 ## Prerequisites
 

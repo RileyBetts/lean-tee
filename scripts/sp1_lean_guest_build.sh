@@ -71,7 +71,7 @@ done
 "$GCC" "${CFLAGS[@]}" -c "$ROOT/host/lean_sp1_init_min/initialize_Init.c" -o "$IOBJ/initialize_Init.o"
 "$GCC" "${CFLAGS[@]}" -c "$ROOT/host/lean_sp1_init_min/init_stubs.c" -o "$IOBJ/init_stubs.o"
 
-for f in GuestSp1 Guest Hash Measurement; do
+for f in GuestSp1 GuestProg Guest Hash Measurement; do
   echo "CC LeanTee/$f.c"
   "$GCC" "${CFLAGS[@]}" -c "$ROOT/.lake/build/ir/LeanTee/$f.c" -o "$GOBJ/$f.o"
 done
@@ -83,7 +83,7 @@ done
 echo "== archive $OUT_A =="
 rm -f "$OUT_A"
 "$AR" rcs "$OUT_A" \
-  "$GOBJ"/GuestSp1.o "$GOBJ"/Guest.o "$GOBJ"/Hash.o "$GOBJ"/Measurement.o \
+  "$GOBJ"/GuestSp1.o "$GOBJ"/GuestProg.o "$GOBJ"/Guest.o "$GOBJ"/Hash.o "$GOBJ"/Measurement.o \
   "$GOBJ"/sha256_portable.o "$GOBJ"/shims.o "$GOBJ"/lean_guest_bridge.o \
   "$GOBJ"/runtime_extern_stubs.o \
   "$IOBJ"/initialize_Init.o "$IOBJ"/init_stubs.o \
