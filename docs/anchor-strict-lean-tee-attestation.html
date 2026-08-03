@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Anchor Chain Strict Mode — attesting a Lean compliance operator with lean-tee</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap");
+
+    :root {
+      --ink: #0e1a24;
+      --muted: #4a5d6a;
+      --paper: #eef3f6;
+      --panel: #f8fbfd;
+      --line: #c5d0d8;
+      --accent: #0a6e7a;
+      --accent-soft: #d7eef1;
+      --ok: #0d6b4c;
+      --ok-soft: #ddf3ea;
+      --warn: #9a3412;
+      --warn-soft: #ffedd5;
+      --bad: #9f1239;
+      --bad-soft: #ffe4e6;
+      --code-bg: #132029;
+      --code-fg: #d7e6ef;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --sans: "Outfit", "Segoe UI", sans-serif;
+      --serif: "Source Serif 4", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(165deg, #dce8ee 0%, transparent 42%),
+        linear-gradient(340deg, #cfe3e6 0%, transparent 38%),
+        var(--paper);
+      font-family: var(--serif);
+      font-size: 1.06rem;
+      line-height: 1.7;
+    }
+    .wrap { max-width: 52rem; margin: 0 auto; padding: 2.75rem 1.25rem 5rem; }
+    header.hero {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 0.85rem;
+    }
+    h1 {
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: clamp(1.7rem, 3.8vw, 2.35rem);
+      line-height: 1.15;
+      margin: 0 0 0.9rem;
+      letter-spacing: -0.03em;
+    }
+    .lede {
+      font-size: 1.12rem;
+      color: var(--muted);
+      max-width: 44rem;
+      margin: 0;
+    }
+    .meta {
+      margin-top: 1rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    nav.toc {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 1rem 1.25rem;
+      margin: 0 0 2.5rem;
+    }
+    nav.toc strong {
+      display: block;
+      font-family: var(--sans);
+      font-size: 0.9rem;
+      margin-bottom: 0.45rem;
+    }
+    nav.toc ol { margin: 0; padding-left: 1.2rem; }
+    @media (min-width: 720px) {
+      nav.toc ol { columns: 2; column-gap: 2rem; }
+    }
+    nav.toc a { color: var(--accent); text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    h2 {
+      font-family: var(--sans);
+      font-size: 1.35rem;
+      margin: 2.4rem 0 0.85rem;
+      letter-spacing: -0.02em;
+      scroll-margin-top: 1rem;
+    }
+    h3 {
+      font-family: var(--sans);
+      font-size: 1.08rem;
+      margin: 1.6rem 0 0.55rem;
+    }
+    p { margin: 0 0 1rem; }
+    ul, ol { margin: 0 0 1rem; padding-left: 1.3rem; }
+    li { margin-bottom: 0.35rem; }
+    a { color: var(--accent); }
+    code, .mono {
+      font-family: var(--mono);
+      font-size: 0.86em;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.5;
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      margin: 0 0 1.25rem;
+      border: 1px solid #2a3a45;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      margin: 0 0 1.25rem;
+      background: var(--panel);
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 0.55rem 0.7rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-family: var(--sans);
+      font-size: 0.82rem;
+      background: var(--accent-soft);
+    }
+    .callout {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 1rem 1.15rem;
+      margin: 0 0 1.25rem;
+    }
+    .callout.ok { border-color: #9bc9b5; background: var(--ok-soft); }
+    .callout.warn { border-color: #e7c3a4; background: var(--warn-soft); }
+    .callout.bad { border-color: #f0a8b8; background: var(--bad-soft); }
+    .callout strong.label {
+      display: block;
+      font-family: var(--sans);
+      font-size: 0.82rem;
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.02em;
+    }
+    .flow {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      white-space: pre;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 0 0 1.25rem;
+    }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <p class="eyebrow">lean-tee × Anchor Chain · Strict Mode</p>
+      <h1>Attesting that an agreed Lean compliance operator ran on a third-party node</h1>
+      <p class="lede">
+        How Anchor Chain Strict Mode uses lean-tee receipts so counterparties can check that a
+        measured compliance guest—specified in Lean and agreed in the interaction contract—produced
+        the off-ledger decision bound into a later on-ledger act. Also: what an adversarial node
+        can and cannot do, and whether bad transactions can be rejected <em>before</em> they enter
+        the chain.
+      </p>
+      <p class="meta">
+        Sources: lean-tee docs (PRODUCT, API, ANCHOR_MULTI_GUEST, THREAT_MODEL, CRYPTO) ·
+        anchor-chain docs/strict-mode-first-cut.md · anchor-node Strict gates
+      </p>
+    </header>
+
+    <nav class="toc" aria-label="Contents">
+      <strong>Contents</strong>
+      <ol>
+        <li><a href="#problem">The problem Strict Mode solves</a></li>
+        <li><a href="#what-is">What lean-tee is (and is not)</a></li>
+        <li><a href="#spec">Agreed spec / contract</a></li>
+        <li><a href="#flow">End-to-end attestation flow</a></li>
+        <li><a href="#verify">What the verifying party checks</a></li>
+        <li><a href="#profiles">Profiles: mock vs SP1</a></li>
+        <li><a href="#adversary">Adversarial third-party node</a></li>
+        <li><a href="#before-block">Rejecting before the blockchain</a></li>
+        <li><a href="#limits">Limits and honesty</a></li>
+        <li><a href="#refs">Pointers</a></li>
+      </ol>
+    </nav>
+
+    <section id="problem">
+      <h2>1. The problem Strict Mode solves</h2>
+      <p>
+        In Anchor Chain, many compliance decisions happen <strong>off-ledger</strong>: an agent
+        (or node operator) runs local logic—“may this participant cast?”, “is this trade side
+        allowed?”—and later posts an on-ledger message such as <code>CastVote</code> or
+        <code>SubmitSide</code>.
+      </p>
+      <p>
+        Classic Mode proves properties of the <em>on-ledger</em> agreement. It does not, by itself,
+        prove that the off-ledger gate was the <strong>agreed measured program</strong> rather than
+        a compromised host agent that always returns <code>decision=allow</code>.
+      </p>
+      <p>
+        <strong>Strict Mode</strong> (opt-in) closes that gap for designated interactions: before
+        (or as a prerequisite to) the sensitive act, the participant must register compliance
+        evidence whose core is a <strong>lean-tee <code>TeeReceipt</code></strong>. Counterparties
+        and the Anchor node verify that receipt against an agreed measurement policy—without
+        needing an identical TEE on every verifier’s laptop.
+      </p>
+    </section>
+
+    <section id="what-is">
+      <h2>2. What lean-tee is (and is not) in this story</h2>
+      <p>
+        lean-tee is an <strong>integrity-first</strong> attestation stack for <strong>public</strong>
+        inputs and outputs:
+      </p>
+      <ul>
+        <li>A <strong>registered guest</strong> (e.g. <code>compliance_operator</code>,
+          <code>voting_operator</code>) is identified by a measurement
+          <code>codeHash = SHA256(code_id)</code>.</li>
+        <li>Rules / config bytes are hashed into <code>configHash</code>.</li>
+        <li>Public I/O is bound into <code>resultHash</code> (the Anchor
+          <code>evidence_root_hex</code>).</li>
+        <li>A <code>proof_ref</code> is either a <strong>mock</strong> digest (CI/demo) or an
+          <strong>SP1</strong> zkVM proof commitment (production integrity profile).</li>
+      </ul>
+      <div class="callout warn">
+        <strong class="label">Not AWS Nitro confidentiality</strong>
+        lean-tee does not seal secrets from the host OS. It answers: “did this measured guest run
+        on these public inputs and produce these outputs?”—not “did the host fail to read memory?”
+        Hardware enclaves remain a separate compose path when secrecy is required.
+      </div>
+      <p>
+        Important nuance for Lean: the <strong>specification</strong> of the compliance operator
+        lives in Lean (and a Rust twin). Under SP1, the <strong>executable</strong> guest is a
+        RISC-V ELF (Rust) whose behaviour is intended to match that spec. Counterparties agree on
+        the measurement of that guest—not on “upload Lean source into the zkVM.”
+      </p>
+    </section>
+
+    <section id="spec">
+      <h2>3. Agreed spec / contract between parties</h2>
+      <p>Before anyone trusts a third-party node’s attestation, the interaction must fix:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Agreement item</th>
+            <th>How it appears in Anchor / lean-tee</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Strict Mode on</td>
+            <td><code>OpenBallot</code> / <code>Negotiate</code> with <code>strict_mode</code> and
+              <code>attestation_profile</code> (e.g. <code>lean-tee-v1</code> or
+              <code>lean-tee-v2</code>)</td>
+          </tr>
+          <tr>
+            <td>Which guest</td>
+            <td>lean-tee <code>guest_id</code> → fixed <code>code_id</code> /
+              <code>codeHash</code> (voting / onboarding / trade / generic compliance)</td>
+          </tr>
+          <tr>
+            <td>Which rules / config</td>
+            <td>Raw rules hashed to <code>configHash</code>; often include an
+              <code>allow=</code> narrowing line</td>
+          </tr>
+          <tr>
+            <td>Which interaction</td>
+            <td>Public inputs include <code>interaction=&lt;ballot_or_trade_id&gt;</code> so the
+              receipt cannot be replayed onto another ballot</td>
+          </tr>
+          <tr>
+            <td>Which action</td>
+            <td><code>action=vote.yes</code> (etc.) must match the later cast / submit semantics</td>
+          </tr>
+          <tr>
+            <td>OrgCompliance Lean embeds</td>
+            <td>Anchor embeds <code>evidenceRoot</code>, <code>codeHash</code>, execution mode into
+              participant compliance material checked at registration</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Multi-guest mapping used by Anchor Strict demos:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Anchor flow</th><th>lean-tee <code>guest_id</code></th><th>Typical actions</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Voting Strict</td><td><code>voting_operator</code></td><td><code>vote.yes</code> / <code>vote.no</code></td></tr>
+          <tr><td>Onboarding Strict</td><td><code>onboarding_operator</code></td><td>register / approve / reject</td></tr>
+          <tr><td>Bilateral / trade Strict</td><td><code>trade_operator</code></td><td><code>trade.submit</code></td></tr>
+          <tr><td>Generic / legacy</td><td><code>compliance_operator</code></td><td>allow-listed actions</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="flow">
+      <h2>4. End-to-end attestation flow</h2>
+      <p>Typical path for a third-party node that must prove it ran the agreed operator:</p>
+      <div class="flow">Counterparties open Strict interaction
+  OpenBallot / Negotiate
+  (strict_mode=1, attestation_profile=lean-tee-v*)
+
+Third-party node (prover host)
+  1. Build public inputs:
+       action=&lt;name&gt;
+       interaction=&lt;ballot_or_trade_id&gt;
+  2. Call lean-tee Execute (guest_id + rules)
+       → TeeReceipt { measurement, publicIO, resultHash, proof_ref, … }
+  3. RegisterCompliance on Anchor with hex fields:
+       evidence_root_hex  = resultHash
+       code_hash_hex      = measurement.codeHash
+       config_hash_hex    = measurement.configHash
+       proof_ref_hex (+ inputs/outputs/nonce as required)
+       lean_source embeds evidence root / code hash
+
+Anchor node (and/or counterparties)
+  4. verify_lean_tee_strict:
+       - measurement policy / expected hashes
+       - resultHash recomputation
+       - mock or (future) SP1 proof check
+  5. Store StrictAttestation for that participant
+
+Later act (CastVote / SubmitSide)
+  6. Gate: participant must already have a valid Strict attestation
+     for this interaction — else reject (never apply the act)</div>
+      <h3>Field mapping (Anchor ↔ lean-tee)</h3>
+      <table>
+        <thead>
+          <tr><th>Anchor Strict field</th><th>lean-tee</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>evidence_root_hex</code></td><td><code>TeeReceipt.resultHash</code></td></tr>
+          <tr><td><code>code_hash_hex</code> / <code>config_hash_hex</code></td><td><code>Measurement</code></td></tr>
+          <tr><td><code>proof_ref_hex</code> (+ I/O / nonce hex)</td><td><code>proof_ref</code> + public I/O</td></tr>
+          <tr><td><code>RegisterCompliance.ballot_id</code></td><td>ballot id <em>or</em> trade id (interaction id)</td></tr>
+          <tr><td><code>attestation_profile</code></td><td><code>lean-tee-v1</code> / <code>lean-tee-v2</code> (+ crypto suite)</td></tr>
+        </tbody>
+      </table>
+      <h3>Surfaces that enforce Strict today</h3>
+      <table>
+        <thead>
+          <tr><th>Surface</th><th>Open</th><th>Act gate</th><th>Demo</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Voting</td><td><code>OpenBallot</code></td><td><code>CastVote</code></td><td><code>agent_voting_strict_demo.sh</code></td></tr>
+          <tr><td>Onboarding-style</td><td><code>OpenBallot</code></td><td><code>CastVote</code> (purchaser)</td><td><code>agent_onboarding_strict_demo.sh</code></td></tr>
+          <tr><td>Bilateral trade</td><td><code>Negotiate</code></td><td><code>SubmitSide</code></td><td><code>agent_bilateral_strict_demo.sh</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="verify">
+      <h2>5. What the verifying party checks (no twin TEE required)</h2>
+      <p>
+        A counterparty or the Anchor node does <strong>not</strong> need to re-run the compliance
+        operator inside an identical TEE. They verify <strong>evidence</strong>:
+      </p>
+      <ol>
+        <li><strong>Profile / suite</strong> — interaction declared <code>lean-tee-v1</code> or
+          <code>v2</code>; suite fail-closed if unknown.</li>
+        <li><strong>Measurement</strong> — <code>codeHash</code> / <code>configHash</code> match
+          the policy for this Strict interaction (agreed guest + rules digest).</li>
+        <li><strong><code>resultHash</code></strong> — recompute
+          <code>SHA256(len-prefixed(domain, codeHash, configHash, inputs, outputs, nonce))</code>
+          and compare to <code>evidence_root_hex</code>.</li>
+        <li><strong>Proof</strong> — for v1, recompute mock <code>proof_ref</code> via
+          <code>lean_tee_receipt</code>; for v2, host-verify SP1 (production path; Anchor wiring
+          may still be catching up to full SP1 verify).</li>
+        <li><strong>Binding</strong> — attested <code>action</code> / <code>interaction</code> in
+          public inputs must match the ballot/trade and the later act; OrgCompliance Lean source
+          must embed the evidence root / code hash as required by Anchor checks.</li>
+      </ol>
+      <div class="callout ok">
+        <strong class="label">Portable verify</strong>
+        This is the point of lean-tee relative to Nitro-rooted attestation: CI machines, other
+        clouds, and chain nodes can Accept using shared algorithms and allow-lists—without AWS
+        PCR trust or a local enclave clone.
+      </div>
+    </section>
+
+    <section id="profiles">
+      <h2>6. Profiles: mock vs SP1</h2>
+      <table>
+        <thead>
+          <tr><th>Profile</th><th>Meaning for Anchor Strict</th><th>Use</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>lean-tee-v1</code></td>
+            <td>Mock proof digest; Anchor node verifies via <code>lean_tee_receipt</code></td>
+            <td>Demos / CI only—not production integrity</td>
+          </tr>
+          <tr>
+            <td><code>lean-tee-v2</code></td>
+            <td>SP1 Hypercube proof of the RISC-V guest execution; never trust client
+              <code>proof_ok</code> alone</td>
+            <td>Production integrity target</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        SP1 adds a cryptographic claim that the <strong>measured guest ELF</strong> produced the
+        public outputs from the public inputs. It does not make the third-party host confidential,
+        and it does not force the host to cooperate (censorship remains possible).
+      </p>
+    </section>
+
+    <section id="adversary">
+      <h2>7. Implications of an adversarial third-party node</h2>
+      <p>Assume the adversary controls the machine that was supposed to run lean-tee / the agent.</p>
+
+      <h3>What they can do</h3>
+      <ul>
+        <li><strong>Refuse to attest</strong> — never call Execute / never
+          <code>RegisterCompliance</code>. Strict act gates then block their
+          <code>CastVote</code> / <code>SubmitSide</code>.</li>
+        <li><strong>Selective honesty</strong> — only prove runs that favour them (if those runs
+          are real under the guest). SP1 / mock both allow “choose which true executions to
+          publish.”</li>
+        <li><strong>Under mock (v1)</strong> — if they also control receipt production and
+          verifiers only check mock algorithms, a sophisticated adversary who can forge a
+          consistent mock digest for <em>false</em> I/O is in scope for “don’t use v1 in
+          production.” Treat v1 as demo-grade.</li>
+        <li><strong>Under SP1 (v2), soundness assumed</strong> — they generally
+          <strong>cannot</strong> forge a verifying proof that guest G on inputs I produced
+          outputs O unless that execution occurred. They can still run the <em>real</em> guest
+          on adversarial-chosen public inputs that the policy still allows.</li>
+        <li><strong>Wrong guest / wrong rules</strong> — only works if verifiers’ measurement
+          allow-list is weak or missing. Strict Mode’s value depends on pinning
+          <code>codeHash</code> / <code>configHash</code>.</li>
+        <li><strong>Replay</strong> — attempt to reuse an old receipt on a new ballot; binding
+          <code>interaction=</code> and Anchor’s registration checks are meant to stop this.</li>
+        <li><strong>Local confidentiality mode</strong> (if used) — does not stop local root from
+          reading worker memory; it only keeps secrets out of the public receipt surface.</li>
+      </ul>
+
+      <h3>What honest counterparties gain</h3>
+      <ul>
+        <li><strong>Cheap reject</strong> of forged or inconsistent receipts
+          (<code>strict_attestation_fail</code> in demos when <code>evidence_root_hex</code> is
+          mangled).</li>
+        <li><strong>Policy-locked guest identity</strong> — “this node claims the agreed voting
+          operator measurement,” not an arbitrary binary.</li>
+        <li><strong>Interaction-bound decisions</strong> — attested action tied to the ballot /
+          trade id before the ledger act.</li>
+      </ul>
+
+      <div class="callout bad">
+        <strong class="label">Not a silver bullet</strong>
+        An adversarial node that never produces a valid attestation is simply locked out of Strict
+        acts—not magically forced to behave. An adversarial node that produces a <em>valid</em>
+        attestation of an <em>undesirable but policy-allowed</em> decision has proven that the
+        agreed guest allowed it; governance must tighten rules / guests, not expect the TEE to
+        invent policy.
+      </div>
+    </section>
+
+    <section id="before-block">
+      <h2>8. Can adversarial transactions be rejected <em>before</em> they are added to the chain?</h2>
+      <p><strong>Yes—for Strict-gated acts, that is the design intent of the Anchor node path.</strong></p>
+      <p>
+        In the reference <code>anchor-node</code> implementation, Strict Mode is enforced when
+        handling messages such as <code>RegisterCompliance</code>, <code>CastVote</code>, and
+        <code>SubmitSide</code>:
+      </p>
+      <ol>
+        <li>
+          <strong>At registration</strong> — if the ballot/trade is Strict for that participant,
+          missing or invalid lean-tee fields → failure
+          (<code>strict_attestation_fail</code>). The attestation is not accepted into node state.
+        </li>
+        <li>
+          <strong>At the act</strong> — e.g. <code>SubmitSide</code> / <code>CastVote</code>
+          checks that a Strict attestation is already registered for the sender on that
+          interaction. If not → reject with detail such as
+          <code>strict attestation required before SubmitSide</code>
+          (<em>before</em> applying the state transition that would count as “the transaction
+          succeeded on the ledger.”
+        </li>
+      </ol>
+      <div class="callout ok">
+        <strong class="label">“Before the blockchain” in practice</strong>
+        Rejection happens in the <strong>node’s transaction / message validation path</strong>
+        (precheck / verify / apply gate)—i.e. the adversarial message does not become an accepted
+        Strict act in ledger state. Demos assert forged evidence roots fail at this layer.
+      </div>
+      <p>Nuances that matter operationally:</p>
+      <ul>
+        <li>
+          <strong>Validation vs gossip</strong> — a malicious peer might still <em>broadcast</em>
+          a bad message; honest nodes that enforce Strict simply do not accept it into state.
+          Network-level spam is a separate DoS concern.
+        </li>
+        <li>
+          <strong>Classic Mode</strong> — interactions not opened as Strict do not get this gate;
+          Classic demos remain unchanged by design.
+        </li>
+        <li>
+          <strong>Consensus / multi-node</strong> — every validating node (or the relevant quorum
+          rules) must apply the same Strict checks. If a Byzantine minority skips checks, that is
+          a node-policy / consensus problem, not a lean-tee crypto failure.
+        </li>
+        <li>
+          <strong>Timing</strong> — attestation is registered first; the later act is gated. The
+          “transaction” that is rejected is the unauthorized cast/submit (and/or the bad
+          RegisterCompliance), not “after finality of a successful Strict act.”
+        </li>
+      </ul>
+      <p>
+        So: <strong>yes</strong>, Strict Mode is specifically there so adversarial or unattested
+        attempts can be rejected in validation <strong>before</strong> they become accepted
+        on-ledger Strict actions—provided the deployment actually runs those gates.
+      </p>
+    </section>
+
+    <section id="limits">
+      <h2>9. Limits and honesty checklist</h2>
+      <ul>
+        <li>lean-tee Strict attestation is <strong>integrity of public compute</strong>, not
+          confidentiality.</li>
+        <li>Verifiers need the <strong>agreed measurement policy</strong> and profile—not a twin
+          enclave.</li>
+        <li><code>lean-tee-v1</code> is for demos; production integrity aims at
+          <code>lean-tee-v2</code> with real SP1 host verify.</li>
+        <li>Host censorship and selective disclosure remain possible.</li>
+        <li>Optional local sealed-worker confidentiality ≠ Nitro; do not market it as such.</li>
+        <li>Lean specifies the operator; SP1 executes a measured Rust guest twin—not the Lean
+          kernel on RISC-V.</li>
+      </ul>
+    </section>
+
+    <section id="refs">
+      <h2>10. Pointers</h2>
+      <ul>
+        <li>lean-tee: <code>docs/ANCHOR_MULTI_GUEST.md</code>, <code>docs/PRODUCT.md</code>,
+          <code>docs/API.md</code>, <code>docs/THREAT_MODEL.md</code>,
+          <code>docs/CRYPTO.md</code>, <code>docs/VS_NITRO.md</code></li>
+        <li>anchor-chain: <code>docs/strict-mode-first-cut.md</code>,
+          <code>AnchorChain/StrictMode.lean</code>,
+          <code>rust/anchor-node</code> Strict gates,
+          <code>scripts/agent_*_strict_demo.sh</code></li>
+        <li>Live Execute (optional): <code>LEAN_TEE_LIVE=1</code> on Strict demos → sibling
+          <code>teeServer</code> + <code>teeClient</code></li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>
+        This document describes the composed Anchor Strict + lean-tee design as implemented in the
+        sibling repositories. It is not a legal contract and not a claim of Nitro-equivalent
+        confidentiality.
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

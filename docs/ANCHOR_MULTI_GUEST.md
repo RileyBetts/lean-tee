@@ -33,3 +33,7 @@ r = execute_action("vote.yes", rules, guest_id="voting_operator", interaction_id
 ```
 
 Classic (non-Strict) Anchor demos remain unchanged.
+
+## Detailed write-up
+
+HTML guide: [anchor-strict-lean-tee-attestation.html](anchor-strict-lean-tee-attestation.html) — attestation flow, adversarial third-party node, and reject-before-ledger-act gates.
