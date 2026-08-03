@@ -3,6 +3,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         sp1_build::build_program("../guest");
         println!("cargo:rerun-if-changed=../guest");
+        sp1_build::build_program("../guest_lean_spike");
+        println!("cargo:rerun-if-changed=../guest_lean_spike");
+        println!("cargo:rerun-if-changed=../guest_lean_spike/c");
     }
 
     let protoc = protoc_bin_vendored::protoc_bin_path()?;

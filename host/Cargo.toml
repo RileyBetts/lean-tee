@@ -5,6 +5,7 @@ members = [
   "compliance_lib",
   "confidential",
   "guest",
+  "guest_lean_spike",
   "prove_server",
 ]
 default-members = ["prove_server"]
