@@ -1,8 +1,11 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "sp1")]
     {
-        sp1_build::build_program("../guest");
-        println!("cargo:rerun-if-changed=../guest");
+        // Measured guest: Lean-compiled ELF (Phase 3). Optional Rust twin: LEAN_TEE_BUILD_RUST_GUEST=1.
+        if std::env::var_os("LEAN_TEE_BUILD_RUST_GUEST").is_some() {
+            sp1_build::build_program("../guest");
+            println!("cargo:rerun-if-changed=../guest");
+        }
         sp1_build::build_program("../guest_lean_spike");
         println!("cargo:rerun-if-changed=../guest_lean_spike");
         println!("cargo:rerun-if-changed=../guest_lean_spike/c");

@@ -29,11 +29,11 @@ Normative fields (registry: [`config/guests/registry.json`](../config/guests/reg
 
 | `guest_id` | `code_id` | Built-in actions |
 | --- | --- | --- |
-| `compliance_operator` | `lean-tee/compliance_operator/v1` | all six defaults (or `allow=` narrow) |
-| `voting_operator` | `lean-tee/voting_operator/v1` | `vote.yes`, `vote.no` |
-| `onboarding_operator` | `lean-tee/onboarding_operator/v1` | `supplier.register`, `purchaser.approve`, `purchaser.reject` |
-| `trade_operator` | `lean-tee/trade_operator/v1` | `trade.submit` |
-| `guest_prog_runtime` | `lean-tee/guest_prog_runtime/v1` | Interpreter of Lean-specified GuestProg (not Lean source) |
+| `compliance_operator` | `lean-tee/compliance_operator/lean-sp1/v1` | all six defaults (or `allow=` narrow) |
+| `voting_operator` | `lean-tee/voting_operator/lean-sp1/v1` | `vote.yes`, `vote.no` |
+| `onboarding_operator` | `lean-tee/onboarding_operator/lean-sp1/v1` | `supplier.register`, `purchaser.approve`, `purchaser.reject` |
+| `trade_operator` | `lean-tee/trade_operator/lean-sp1/v1` | `trade.submit` |
+| `guest_prog_runtime` | `lean-tee/guest_prog_runtime/lean-sp1/v1` | Lean-compiled GuestProg runtime (not Lean source) |
 
 Unknown or disabled `guest_id` → error. Prefer `LoadProgram` / `Execute.program` / `program_id` for GuestProg (leave `guest_id` empty in that mode) — see [GUEST_PROG.md](GUEST_PROG.md).
 

@@ -94,7 +94,7 @@ fn prove_sp1(
         include_elf, Elf, SP1Stdin,
     };
 
-    const ELF: Elf = include_elf!("lean_tee_guest");
+    const ELF: Elf = include_elf!("lean_tee_guest_lean");
 
     let mut stdin = SP1Stdin::new();
     let mut cfg = [0u8; 32];

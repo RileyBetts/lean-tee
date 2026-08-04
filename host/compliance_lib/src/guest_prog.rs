@@ -3,7 +3,7 @@
 
 use lean_tee_receipt::{concat_len_prefixed, hash_suite, hex_encode, sha256, CryptoSuite};
 
-pub const RUNTIME_CODE_ID: &[u8] = b"lean-tee/guest_prog_runtime/v1";
+pub const RUNTIME_CODE_ID: &[u8] = b"lean-tee/guest_prog_runtime/lean-sp1/v1";
 pub const RUNTIME_GUEST_ID: &str = "guest_prog_runtime";
 pub const PROG_VERSION_V1: &str = "lean-tee-guest-prog/v1";
 pub const PROG_VERSION_V2: &str = "lean-tee-guest-prog/v2";

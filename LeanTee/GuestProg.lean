@@ -9,16 +9,16 @@ import LeanTee.Guest
 # Lean-specified guest programs
 
 Programs are **specified in Lean** (AST + deterministic bytes + run semantics).
-They are **executed** by the measured `guest_prog_runtime` on SP1 RISC-V (Rust twin).
+They are **executed** by the measured Lean-compiled SP1 guest (`guest_prog_runtime`).
 
 This is not “upload Lean source to RISC-V”. Lean is the metalanguage; the payload is a
-`GuestProg` whose meaning is defined here and mirrored in `lean_tee_compliance`.
+`GuestProg` whose meaning is defined here (and mirrored in `lean_tee_compliance` for mock/host).
 -/
 
 namespace LeanTee.GuestProg
 
 /-- Runtime identity (fixed measured interpreter / oracle). -/
-def runtimeCodeId : String := "lean-tee/guest_prog_runtime/v1"
+def runtimeCodeId : String := "lean-tee/guest_prog_runtime/lean-sp1/v1"
 def runtimeGuestId : String := "guest_prog_runtime"
 
 def runtimeCodeHash : ByteArray := Hash.sha256 runtimeCodeId.toUTF8

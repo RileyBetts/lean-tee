@@ -21,12 +21,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install SP1 toolchain
+      - name: Install Lean (elan)
+        run: |
+          set -euo pipefail
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Install SP1 toolchain (+ C)
         run: |
           set -euo pipefail
           curl -L https://sp1up.succinct.xyz | bash
           echo "$HOME/.sp1/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.sp1/riscv/bin" >> "$GITHUB_PATH"
           "$HOME/.sp1/bin/sp1up" || sp1up
+          "$HOME/.sp1/bin/sp1up" --c-toolchain || true
       - name: SP1 execute-only
         env:
           SP1_PROVE_ONE: ${{ github.event_name == 'workflow_dispatch' && inputs.prove_one && '1' || '0' }}

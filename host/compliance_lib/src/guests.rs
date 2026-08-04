@@ -13,7 +13,7 @@ pub struct GuestDesc {
 
 pub const COMPLIANCE: GuestDesc = GuestDesc {
     guest_id: "compliance_operator",
-    code_id: b"lean-tee/compliance_operator/v1",
+    code_id: b"lean-tee/compliance_operator/lean-sp1/v1",
     actions: &[
         "vote.yes",
         "vote.no",
@@ -26,25 +26,25 @@ pub const COMPLIANCE: GuestDesc = GuestDesc {
 
 pub const VOTING: GuestDesc = GuestDesc {
     guest_id: "voting_operator",
-    code_id: b"lean-tee/voting_operator/v1",
+    code_id: b"lean-tee/voting_operator/lean-sp1/v1",
     actions: &["vote.yes", "vote.no"],
 };
 
 pub const ONBOARDING: GuestDesc = GuestDesc {
     guest_id: "onboarding_operator",
-    code_id: b"lean-tee/onboarding_operator/v1",
+    code_id: b"lean-tee/onboarding_operator/lean-sp1/v1",
     actions: &["supplier.register", "purchaser.approve", "purchaser.reject"],
 };
 
 pub const TRADE: GuestDesc = GuestDesc {
     guest_id: "trade_operator",
-    code_id: b"lean-tee/trade_operator/v1",
+    code_id: b"lean-tee/trade_operator/lean-sp1/v1",
     actions: &["trade.submit"],
 };
 
 pub const GUEST_PROG_RUNTIME: GuestDesc = GuestDesc {
     guest_id: "guest_prog_runtime",
-    code_id: b"lean-tee/guest_prog_runtime/v1",
+    code_id: b"lean-tee/guest_prog_runtime/lean-sp1/v1",
     actions: &[],
 };
 

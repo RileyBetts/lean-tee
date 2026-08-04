@@ -19,7 +19,7 @@ structure ComplianceConfig where
   deriving Inhabited
 
 def demoCodeHash : ByteArray :=
-  Hash.sha256 "lean-tee/compliance_operator/v1".toUTF8
+  Hash.sha256 "lean-tee/compliance_operator/lean-sp1/v1".toUTF8
 
 def demoGuestId : String := "compliance_operator"
 

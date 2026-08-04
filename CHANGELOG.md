@@ -2,10 +2,17 @@
 
 ## Unreleased
 
+### Breaking — Lean SP1 guest cutover (Phase 3)
+
+- **Measured SP1 ELF** is now Lean-compiled (`lean_tee_guest_lean` / `host/guest_lean`), not the Rust twin (`host/guest`).
+- **`code_id` strings** bumped to `lean-tee/<guest>/lean-sp1/v1` (e.g. `lean-tee/compliance_operator/lean-sp1/v1`, `lean-tee/guest_prog_runtime/lean-sp1/v1`). Recompute Strict / Anchor allow-lists from the new `codeHash = SHA256(code_id)`.
+- Rust guest crate kept for optional differential builds (`LEAN_TEE_BUILD_RUST_GUEST=1`); not linked into Prove by default.
+
+### Other
+
 - Optional `LEAN_TEE_CONFIDENTIALITY=local` sealed worker (secrets out of PublicIO; not Nitro)
 - Production default profile `lean-tee-v2`; mock called out as CI-only; weekly/manual SP1 execute CI (`sp1-execute.yml`, `scripts/sp1_execute_ci.sh`)
-- GuestProg v2: `deny=`, `require_interaction`, `max_input_bytes`; program size cap; `load_program` ACL tenants
-- GuestProg runtime: Lean-specified programs via gRPC LoadProgram; SP1 RISC-V interpreter path
+- GuestProg v1/v2 on the Lean SP1 guest (execute-only smokes)
 - Marketing docs vs Nitro ([VS_NITRO.md](docs/VS_NITRO.md)); multi-guest enterprise packaging; crypto suites; demos
 
 ## 0.1.0 — 2026-08-02

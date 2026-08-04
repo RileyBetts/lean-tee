@@ -27,10 +27,10 @@ First-party operators are selected by `ExecuteRequest.guest_id` (see [API.md](AP
 
 | `guest_id` | Measurement `CODE_ID` |
 | --- | --- |
-| `compliance_operator` | `lean-tee/compliance_operator/v1` |
-| `voting_operator` | `lean-tee/voting_operator/v1` |
-| `onboarding_operator` | `lean-tee/onboarding_operator/v1` |
-| `trade_operator` | `lean-tee/trade_operator/v1` |
+| `compliance_operator` | `lean-tee/compliance_operator/lean-sp1/v1` |
+| `voting_operator` | `lean-tee/voting_operator/lean-sp1/v1` |
+| `onboarding_operator` | `lean-tee/onboarding_operator/lean-sp1/v1` |
+| `trade_operator` | `lean-tee/trade_operator/lean-sp1/v1` |
 
 Registry file: [`config/guests/registry.json`](../config/guests/registry.json) (`LEAN_TEE_GUESTS_FILE`).
 

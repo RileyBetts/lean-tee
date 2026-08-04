@@ -4,7 +4,7 @@
   "guests": [
     {
       "guest_id": "compliance_operator",
-      "code_id": "lean-tee/compliance_operator/v1",
+      "code_id": "lean-tee/compliance_operator/lean-sp1/v1",
       "enabled": true,
       "default_profile": "lean-tee-v1",
       "actions": [
@@ -19,7 +19,7 @@
     },
     {
       "guest_id": "voting_operator",
-      "code_id": "lean-tee/voting_operator/v1",
+      "code_id": "lean-tee/voting_operator/lean-sp1/v1",
       "enabled": true,
       "default_profile": "lean-tee-v1",
       "actions": ["vote.yes", "vote.no"],
@@ -27,7 +27,7 @@
     },
     {
       "guest_id": "onboarding_operator",
-      "code_id": "lean-tee/onboarding_operator/v1",
+      "code_id": "lean-tee/onboarding_operator/lean-sp1/v1",
       "enabled": true,
       "default_profile": "lean-tee-v1",
       "actions": ["supplier.register", "purchaser.approve", "purchaser.reject"],
@@ -35,7 +35,7 @@
     },
     {
       "guest_id": "guest_prog_runtime",
-      "code_id": "lean-tee/guest_prog_runtime/v1",
+      "code_id": "lean-tee/guest_prog_runtime/lean-sp1/v1",
       "enabled": true,
       "default_profile": "lean-tee-v1",
       "actions": [],

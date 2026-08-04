@@ -258,9 +258,10 @@
       </div>
       <p>
         Important nuance for Lean: the <strong>specification</strong> of the compliance operator
-        lives in Lean (and a Rust twin). Under SP1, the <strong>executable</strong> guest is a
-        RISC-V ELF (Rust) whose behaviour is intended to match that spec. Counterparties agree on
-        the measurement of that guest—not on “upload Lean source into the zkVM.”
+        lives in Lean (and a Rust host twin for mock/parity). Under SP1, the <strong>executable</strong>
+        guest is the Lean-compiled RISC-V ELF <code>lean_tee_guest_lean</code>, whose behaviour is
+        intended to match that spec. Counterparties agree on the measurement of that guest—not on
+        “upload Lean source into the zkVM.”
       </p>
     </section>
 
@@ -554,7 +555,7 @@ Later act (CastVote / SubmitSide)
           <code>lean-tee-v2</code> with real SP1 host verify.</li>
         <li>Host censorship and selective disclosure remain possible.</li>
         <li>Optional local sealed-worker confidentiality ≠ Nitro; do not market it as such.</li>
-        <li>Lean specifies the operator; SP1 executes a measured Rust guest twin—not the Lean
+        <li>Lean specifies the operator; SP1 executes the measured Lean-compiled guest—not Lean
           kernel on RISC-V.</li>
       </ul>
     </section>

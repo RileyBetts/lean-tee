@@ -8,11 +8,11 @@ That program is executed by a **fixed measured runtime** (`guest_prog_runtime`) 
 ```text
 LoadProgram(GuestProg bytes) → program_id
 Execute(program_id | program, inputs) → TeeReceipt
-  codeHash  = SHA256("lean-tee/guest_prog_runtime/v1")   // interpreter
-  configHash = SHA256(program bytes)                     // your Lean-specified program
+  codeHash  = SHA256("lean-tee/guest_prog_runtime/lean-sp1/v1")  // Lean SP1 guest
+  configHash = SHA256(program bytes)                              // your Lean-specified program
 ```
 
-**Not supported:** uploading Lean *source* to compile/run on RISC-V. Lean is the **spec language** for GuestProg; the SP1 guest is a **Rust interpreter** of that format (proven path = SP1 execute/prove of the interpreter + public program).
+**Not supported:** uploading Lean *source* to compile/run on RISC-V. Lean is the **spec language** for GuestProg; the SP1 guest is the **Lean-compiled** runtime of that format (proven path = SP1 execute/prove of `lean_tee_guest_lean` + public program).
 
 ## Wire (gRPC)
 

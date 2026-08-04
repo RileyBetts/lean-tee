@@ -6,9 +6,10 @@ Requires [SP1](https://docs.succinct.xyz/docs/sp1/getting-started/install) (`sp1
 
 | Crate | Role |
 | --- | --- |
-| `compliance_lib` | Shared compliance logic (aligned with `LeanTee.Guest`) |
-| `guest` | **SP1 RISC-V zkVM guest ELF** (`lean_tee_guest`) |
-| `prove_server` | gRPC `Prove` + `sp1_smoke` binary |
+| `compliance_lib` | Shared compliance / GuestProg logic (mock + parity) |
+| `guest_lean` | **Measured SP1 guest ELF** — Lean→C→RISC-V (`lean_tee_guest_lean`) |
+| `guest` | Legacy Rust twin (optional; `LEAN_TEE_BUILD_RUST_GUEST=1`) |
+| `prove_server` | gRPC `Prove` + `sp1_smoke` (Lean ELF) |
 
 ## Install toolchain (once)
 

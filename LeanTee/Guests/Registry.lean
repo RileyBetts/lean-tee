@@ -23,7 +23,7 @@ def GuestDesc.allowPrefixes (g : GuestDesc) : List String :=
 
 def compliance : GuestDesc := {
   guestId := "compliance_operator"
-  codeId := "lean-tee/compliance_operator/v1"
+  codeId := "lean-tee/compliance_operator/lean-sp1/v1"
   actions := [
     "vote.yes", "vote.no", "supplier.register",
     "purchaser.approve", "purchaser.reject", "trade.submit"
@@ -32,26 +32,26 @@ def compliance : GuestDesc := {
 
 def voting : GuestDesc := {
   guestId := "voting_operator"
-  codeId := "lean-tee/voting_operator/v1"
+  codeId := "lean-tee/voting_operator/lean-sp1/v1"
   actions := ["vote.yes", "vote.no"]
 }
 
 def onboarding : GuestDesc := {
   guestId := "onboarding_operator"
-  codeId := "lean-tee/onboarding_operator/v1"
+  codeId := "lean-tee/onboarding_operator/lean-sp1/v1"
   actions := ["supplier.register", "purchaser.approve", "purchaser.reject"]
 }
 
 def trade : GuestDesc := {
   guestId := "trade_operator"
-  codeId := "lean-tee/trade_operator/v1"
+  codeId := "lean-tee/trade_operator/lean-sp1/v1"
   actions := ["trade.submit"]
 }
 
-/-- Measured RISC-V interpreter for Lean-specified GuestProg payloads. -/
+/-- Measured Lean→C→SP1 guest for Lean-specified GuestProg payloads. -/
 def guestProgRuntime : GuestDesc := {
   guestId := "guest_prog_runtime"
-  codeId := "lean-tee/guest_prog_runtime/v1"
+  codeId := "lean-tee/guest_prog_runtime/lean-sp1/v1"
   actions := []  -- allow-list comes from the loaded program
 }
 

@@ -58,8 +58,9 @@ SP1_PROVER=cpu ./target/release/sp1_lean_guestprog_smoke
 ### Verified
 
 - **Host:** Lake GuestSp1 C + Init subset + portable SHA: `decision=allow` for `action=vote.yes`.
-- **SP1 compliance (empty program):** `sp1_lean_guest_smoke` matches Rust `run_compliance`.
-- **SP1 GuestProg (non-empty program):** `sp1_lean_guestprog_smoke` matches Rust `run_measured` for v1 allow/deny and v2 allow / miss-interaction / deny-wins.
+- **SP1 compliance (empty program):** `sp1_lean_guest_smoke` / `sp1_smoke` match Rust `run_compliance`.
+- **SP1 GuestProg (non-empty program):** `sp1_lean_guestprog_smoke` matches Rust `run_measured` for v1/v2 goldens.
+- **Phase 3 cutover:** Prove server and CI measure `lean_tee_guest_lean`; `code_id`s use `…/lean-sp1/v1`.
 
 ### SP1 FENCE note
 
@@ -79,8 +80,8 @@ bash scripts/sp1_lean_runtime_build.sh   # → .cache/lean-sp1-runtime/prefix/li
 
 ## Later phases
 
-1. Retire Rust twin as measured guest; new `code_id`s
-2. Stretch: larger Init / kernel-like surface
+1. Stretch: larger Init / kernel-like surface
+2. Optional: ELF-digest measurements / prove-heavy CI
 
 ## Non-goals (yet)
 

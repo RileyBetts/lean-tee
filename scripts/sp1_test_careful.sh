@@ -17,8 +17,15 @@ cd "$ROOT/host"
 echo "== free memory =="
 free -h | head -2
 
+echo "== Lean SP1 runtime + guest archive =="
+cd "$ROOT"
+bash scripts/sp1_lean_runtime_fetch.sh
+bash scripts/sp1_lean_runtime_build.sh
+bash scripts/sp1_lean_guest_build.sh
+cd "$ROOT/host"
+
 echo "== build (if needed) =="
-cargo build -p lean_tee_prove_server --release --bin sp1_smoke --bin prove_server
+cargo build -p lean_tee_prove_server --release --bin sp1_smoke --bin prove_server --features sp1
 
 echo "== SP1 execute-only (all cases, real RISC-V guest) =="
 SP1_PROVER=cpu ./target/release/sp1_smoke --execute-only

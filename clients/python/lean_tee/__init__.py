@@ -14,7 +14,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[2]
 _HOST_RECEIPT = _ROOT / "host" / "receipt"
 
-CODE_ID = b"lean-tee/compliance_operator/v1"
+CODE_ID = b"lean-tee/compliance_operator/lean-sp1/v1"
 SUITE_SHA256_MOCK = "sha256+mock"
 SUITE_SHA256_SP1 = "sha256+sp1"
 SUITE_BLAKE3_MOCK = "blake3+mock"
@@ -38,7 +38,7 @@ DEFAULT_ALLOW = (
 # First-party guests (mirrors config/guests/registry.json)
 GUESTS: dict[str, dict] = {
     "compliance_operator": {
-        "code_id": b"lean-tee/compliance_operator/v1",
+        "code_id": b"lean-tee/compliance_operator/lean-sp1/v1",
         "actions": [
             "vote.yes",
             "vote.no",
@@ -49,15 +49,15 @@ GUESTS: dict[str, dict] = {
         ],
     },
     "voting_operator": {
-        "code_id": b"lean-tee/voting_operator/v1",
+        "code_id": b"lean-tee/voting_operator/lean-sp1/v1",
         "actions": ["vote.yes", "vote.no"],
     },
     "onboarding_operator": {
-        "code_id": b"lean-tee/onboarding_operator/v1",
+        "code_id": b"lean-tee/onboarding_operator/lean-sp1/v1",
         "actions": ["supplier.register", "purchaser.approve", "purchaser.reject"],
     },
     "trade_operator": {
-        "code_id": b"lean-tee/trade_operator/v1",
+        "code_id": b"lean-tee/trade_operator/lean-sp1/v1",
         "actions": ["trade.submit"],
     },
 }

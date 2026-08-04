@@ -6,14 +6,15 @@
 //! SP1_PROVER=cpu ./target/release/sp1_smoke --prove-one 0
 //! ```
 
-use lean_tee_compliance::{code_hash, run_compliance, sha256};
+use lean_tee_compliance::{code_hash, run_compliance};
+use lean_tee_receipt::sha256;
 use sha2::{Digest, Sha256};
 use sp1_sdk::{
     blocking::{ProveRequest, Prover, ProverClient},
     include_elf, Elf, ProvingKey, SP1Stdin,
 };
 
-const ELF: Elf = include_elf!("lean_tee_guest");
+const ELF: Elf = include_elf!("lean_tee_guest_lean");
 
 fn main() {
     sp1_sdk::utils::setup_logger();

@@ -4,7 +4,7 @@
 use blake3::Hasher as Blake3;
 use sha2::{Digest, Sha256};
 
-pub const CODE_ID: &[u8] = b"lean-tee/compliance_operator/v1";
+pub const CODE_ID: &[u8] = b"lean-tee/compliance_operator/lean-sp1/v1";
 
 pub const SUITE_SHA256_MOCK: &str = "sha256+mock";
 pub const SUITE_SHA256_SP1: &str = "sha256+sp1";

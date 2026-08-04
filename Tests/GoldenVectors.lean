@@ -26,15 +26,15 @@ def main : IO Unit := do
     proofRef := proof
     receiptMeta := LeanTee.ReceiptMeta.default
   }
-  let expectCode := "6c3d3e4ff28fd6b2ce6730c132ef9a34e9d8ab4e3762ba48cca8d3469cce98a0"
+  let expectCode := "bec5a1b6fd790b3332da9ebdd744dbe4d58612fa9de64321298ddea05a40784f"
   let gotCode := LeanTee.Guest.hexEncode m.codeHash
   if gotCode ≠ expectCode then
     throw (IO.userError s!"code_hash mismatch got={gotCode}")
-  let expectEv := "fdef26fe35ecac203ef446343e15e4a314132c7dde456b9e9fd92c1348cf6b72"
+  let expectEv := "198ed26a905540074fe9a33b1dd45cb45e758578e1e4dd4402a50492788661bc"
   let gotEv := LeanTee.Guest.hexEncode receipt.resultHash
   if gotEv ≠ expectEv then
     throw (IO.userError s!"evidence mismatch got={gotEv}")
-  let expectProof := "114d19ddc0fe6872aa5a9ec2179431f30f4b088ea662c3cc22990fe0ef850366"
+  let expectProof := "43c5b69cfc6fbd6bf251c6f748c599f5cb4c8897599a59fb7fa7dce925b9a81b"
   let gotProof := LeanTee.Guest.hexEncode proof
   if gotProof ≠ expectProof then
     throw (IO.userError s!"proof mismatch got={gotProof}")

@@ -82,7 +82,7 @@ LEAN_TEE_PROVE_MODE=mock LEAN_TEE_PROVE_PORT=50072 \
 - Wire: [`proto/lean_tee/v1/tee.proto`](proto/lean_tee/v1/tee.proto)
 - `resultHash` domain: `lean-tee/v1` (length-prefixed SHA-256)
 - Mock `proof_ref` domain: `lean-tee/mock-proof/v1` (**not** production)
-- Default guest: `SHA256("lean-tee/compliance_operator/v1")` (empty `guest_id`)
+- Default guest: `SHA256("lean-tee/compliance_operator/lean-sp1/v1")` (empty `guest_id`)
 - Shared Rust algorithms: crate `lean_tee_receipt` under [`host/receipt`](host/receipt)
 - Production prove: SP1 Hypercube via `lean-tee-v2` + host verify
 
@@ -97,7 +97,8 @@ Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [CONFIDE
 | `host/receipt` | Shared Rust receipt crypto (Anchor-linkable) |
 | `host/compliance_lib` | Multi-guest operator logic |
 | `host/prove_server` | tonic Prove (mock and/or SP1) |
-| `host/guest` | SP1 RISC-V guest ELF |
+| `host/guest_lean` | Measured SP1 guest ELF (Lean→C→RISC-V) |
+| `host/guest` | Legacy Rust twin (optional differential) |
 | `clients/python` | Python Execute / AcceptReceipt SDK |
 | `clients/rust` | Thin tonic Tee + Prove client |
 | `config/guests/` | First-party guest registry |
