@@ -1,8 +1,8 @@
 name: sp1-execute
 
 # Gated SP1 path: weekly + manual. Default = execute-only on Lean guest ELF.
-# Optional mock prove-one (workflow_dispatch or schedule with SP1_PROVE_ONE).
-# Real CPU prove only via SP1_PROVE_HEAVY (repo var / local) — OOM risk.
+# Optional mock prove-one (workflow_dispatch).
+# Real CPU prove only when prove_one + prove_heavy (OOM risk on ubuntu-latest).
 
 on:
   schedule:
@@ -10,9 +10,13 @@ on:
   workflow_dispatch:
     inputs:
       prove_one:
-        description: "Also run one prove (mock by default; set SP1_PROVE_HEAVY carefully)"
+        description: "Also run one prove (mock unless prove_heavy)"
         type: boolean
         default: true
+      prove_heavy:
+        description: "Real CPU prove+verify of Lean ELF (needs prove_one; aborts if <10GiB free unless runner is large)"
+        type: boolean
+        default: false
 
 jobs:
   sp1-execute-only:
@@ -43,5 +47,13 @@ jobs:
         env:
           # Schedule: execute-only. Manual: prove_one default true → mock prove case 0.
           SP1_PROVE_ONE: ${{ github.event_name == 'workflow_dispatch' && inputs.prove_one && '1' || '0' }}
+          # Heavy only on explicit workflow_dispatch prove_heavy (+ prove_one). Never on schedule.
+          SP1_PROVE_HEAVY: ${{ github.event_name == 'workflow_dispatch' && inputs.prove_one && inputs.prove_heavy && '1' || '0' }}
           CARGO_TERM_COLOR: always
         run: bash scripts/sp1_execute_ci.sh
+      - name: Upload guest digests
+        uses: actions/upload-artifact@v4
+        with:
+          name: sp1-guest-digests
+          path: artifacts/sp1_guest_digests.json
+          if-no-files-found: error

@@ -82,4 +82,5 @@ Require sibling checkout at **https://github.com/RileyBetts/lean-grpc/tree/v1.0.
 2. ~~Enterprise control plane (ACL, audit, quotas, mTLS docs)~~ (shipped)
 3. ~~Production `lean-tee-v2` default + gated SP1 execute CI + GuestProg v2~~ (shipped; durable jobs via `LEAN_TEE_JOB_DIR`)
 4. SDK `guest_id` + Anchor multi-guest packs (deeper consumer wiring)
-5. Optional: tighten measurement (ELF digests), three-way GuestProg goldens, request metadata auth
+5. Optional: fold ELF/vk digests into wire `Measurement` (v3 profile); three-way GuestProg goldens; request metadata auth
+   - *Done (off-wire):* published `artifacts/sp1_guest_digests.json` + Anchor docs pin; gated CPU prove via `prove_heavy`

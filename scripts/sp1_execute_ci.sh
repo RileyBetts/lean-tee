@@ -35,13 +35,29 @@ cd "$ROOT/host"
 echo "== build sp1_smoke (Lean guest ELF) =="
 cargo build -p lean_tee_prove_server --release --bin sp1_smoke --features sp1
 
-echo "== SP1 execute-only (compliance + GuestProg; Lean guest) =="
-SP1_PROVER=cpu ./target/release/sp1_smoke --execute-only
+DIGEST_OUT="$ROOT/artifacts/sp1_guest_digests.json"
+mkdir -p "$ROOT/artifacts"
+echo "== SP1 execute-only + guest digests (compliance + GuestProg; Lean guest) =="
+SP1_PROVER=cpu ./target/release/sp1_smoke --execute-only \
+  --print-digests --write-digests "$DIGEST_OUT"
 
 if [[ "${SP1_PROVE_ONE:-}" == "1" ]]; then
   echo "== optional single prove (case 0 = compliance-allow-yes) =="
   if [[ "${SP1_PROVE_HEAVY:-}" == "1" ]]; then
-    echo "SP1_PROVE_HEAVY=1 → real CPU prove (watch memory)"
+    # Real CPU prove of the Lean ELF routinely needs >>8 GiB free; on 16 GiB
+    # laptops this has hard-locked the machine. Abort unless explicitly forced.
+    avail_kib="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+    need_kib=$((10 * 1024 * 1024)) # 10 GiB
+    free -h | head -2
+    if [[ "${SP1_PROVE_HEAVY_FORCE:-}" != "1" && "${GITHUB_ACTIONS:-}" != "true" && "${avail_kib}" -lt "${need_kib}" ]]; then
+      echo "SP1_PROVE_HEAVY refused: MemAvailable=${avail_kib} KiB (<10 GiB)." >&2
+      echo "Use Actions prove_heavy / a larger machine, or SP1_PROVE_HEAVY_FORCE=1 (OOM/lockup risk)." >&2
+      exit 1
+    fi
+    if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+      echo "note: GITHUB_ACTIONS runner may still OOM on CPU prove; prefer a larger runner if this fails"
+    fi
+    echo "SP1_PROVE_HEAVY=1 → real CPU prove (MemAvailable=${avail_kib} KiB)"
     SP1_PROVER=cpu ./target/release/sp1_smoke --prove-one 0
   else
     SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0

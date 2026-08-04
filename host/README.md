@@ -26,9 +26,11 @@ CPU proving on a 16GB laptop previously locked the machine (~80%+ RAM). Prefer s
 
 ```bash
 export PATH="$HOME/.sp1/bin:$PATH"
-cd .. && bash scripts/sp1_execute_ci.sh            # execute-only (CI / weekly gate; no heavy prove)
+cd .. && bash scripts/sp1_execute_ci.sh            # execute-only + digests (CI / weekly gate)
+cd .. && bash scripts/sp1_guest_digest.sh          # ELF/vk digests only → artifacts/
 cd .. && bash scripts/sp1_test_careful.sh          # execute (cpu) + prove (mock) + Lean e2e
-SP1_PROVE_HEAVY=1 bash scripts/sp1_test_careful.sh # adds ONE real CPU prove (watch free -h)
+# Real CPU prove: prefer Actions prove_heavy. Local needs ≥10GiB free or FORCE:
+# SP1_PROVE_HEAVY=1 SP1_PROVE_HEAVY_FORCE=1 bash scripts/sp1_test_careful.sh
 ```
 
 Production profile: `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` + `LEAN_TEE_PROVE_ADDR` to this `prove_server`. Mock is CI/dev only.
@@ -36,10 +38,12 @@ Production profile: `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` + `LEAN_TEE_PROVE_ADD
 Or manually:
 
 ```bash
-SP1_PROVER=cpu ./target/release/sp1_smoke --execute-only   # all 3 cases, RISC-V guest
+SP1_PROVER=cpu ./target/release/sp1_smoke --execute-only --print-digests
 SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0 # SDK prove/verify path
-# SP1_PROVER=cpu ./target/release/sp1_smoke --prove-one 0  # heavy — only if you have free RAM
+# Do NOT run SP1_PROVER=cpu --prove-one on ≤16GiB laptops (hard lock / OOM risk).
 ```
+
+GitHub Actions (`sp1-execute`): schedule = execute + digests; manual `prove_one` = mock prove; `prove_one` + `prove_heavy` = one real CPU prove (use only when the runner has headroom).
 
 ## Prove gRPC (for Lean Tee)
 

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Stretch — ELF/vk digests + gated CPU prove
+
+- Publish `elf_sha256` / `vk_*` for `lean_tee_guest_lean` via `sp1_smoke --print-digests` / `scripts/sp1_guest_digest.sh` → `artifacts/sp1_guest_digests.json` (CI artifact on `sp1-execute`).
+- Anchor Strict / multi-guest docs: counterparties pin digests; wire `Measurement` unchanged (`codeHash`+`configHash`).
+- Real CPU prove+verify of one Lean-ELF case gated by `workflow_dispatch` `prove_heavy` (+ `prove_one`). Local `SP1_PROVE_HEAVY=1` aborts unless ≥10 GiB `MemAvailable` or `SP1_PROVE_HEAVY_FORCE=1` (CPU prove can hard-lock 16 GiB laptops).
+
 ### Phase 4b — Init allow-list RFC
 
 - [`docs/LEAN_SP1_INIT_RFC.md`](docs/LEAN_SP1_INIT_RFC.md): allow-list, FENCE/init traps, admission rule, cycle/size budgets.
@@ -11,7 +17,7 @@
 
 - `sp1_smoke` covers compliance **and** GuestProg on `lean_tee_guest_lean` (CI entry).
 - SP1 CI pins Lean **4.32.1**, requires `sp1up --c-toolchain`, optional mock `--prove-one`.
-- `codeHash` remains `SHA256(code_id)`; ELF identity is SP1 vk/ELF (not an ELF digest in measurement).
+- `codeHash` remains `SHA256(code_id)`; ELF identity is SP1 vk/ELF (digests published beside measurement, not folded into `codeHash`).
 
 ### Breaking — Lean SP1 guest cutover (Phase 3)
 

@@ -260,8 +260,9 @@
         Important nuance for Lean: the <strong>specification</strong> of the compliance operator
         lives in Lean (and a Rust host twin for mock/parity). Under SP1, the <strong>executable</strong>
         guest is the Lean-compiled RISC-V ELF <code>lean_tee_guest_lean</code>, whose behaviour is
-        intended to match that spec. Counterparties agree on the measurement of that guest—not on
-        “upload Lean source into the zkVM.”
+        intended to match that spec. Counterparties agree on the logical measurement
+        (<code>codeHash</code>) <em>and</em>, for <code>lean-tee-v2</code>, the published ELF /
+        verifying-key digests—not on “upload Lean source into the zkVM.”
       </p>
     </section>
 
@@ -286,6 +287,14 @@
             <td>Which guest</td>
             <td>lean-tee <code>guest_id</code> → fixed <code>code_id</code> /
               <code>codeHash</code> (voting / onboarding / trade / generic compliance)</td>
+          </tr>
+          <tr>
+            <td>Which SP1 executable (v2)</td>
+            <td>Published <code>elf_sha256</code> / <code>vk_bytes32</code> for
+              <code>lean_tee_guest_lean</code> (see
+              <code>artifacts/sp1_guest_digests.json</code>). Wire
+              <code>Measurement</code> stays <code>codeHash</code>+<code>configHash</code>;
+              digests pin the zkVM image for host verify.</td>
           </tr>
           <tr>
             <td>Which rules / config</td>
@@ -431,8 +440,10 @@ Later act (CastVote / SubmitSide)
       </table>
       <p>
         SP1 adds a cryptographic claim that the <strong>measured guest ELF</strong> produced the
-        public outputs from the public inputs. It does not make the third-party host confidential,
-        and it does not force the host to cooperate (censorship remains possible).
+        public outputs from the public inputs. Counterparties should pin that ELF via the published
+        digests artifact (not via folding ELF bytes into wire <code>codeHash</code>). SP1 does not
+        make the third-party host confidential, and it does not force the host to cooperate
+        (censorship remains possible).
       </p>
     </section>
 

@@ -31,9 +31,17 @@ echo "== SP1 execute-only (all cases, real RISC-V guest) =="
 SP1_PROVER=cpu ./target/release/sp1_smoke --execute-only
 
 echo "== SP1 prove+verify one case (default: mock — safe on 16GB laptops) =="
-echo "   For real CPU prove (can OOM): SP1_PROVE_HEAVY=1 $0"
+echo "   Real CPU prove is gated (can hard-lock ≤16GB hosts)."
+echo "   Prefer GitHub Actions prove_heavy, or: SP1_PROVE_HEAVY=1 SP1_PROVE_HEAVY_FORCE=1 $0"
 if [[ "${SP1_PROVE_HEAVY:-}" == "1" ]]; then
+  avail_kib="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+  need_kib=$((10 * 1024 * 1024))
   free -h | head -2
+  if [[ "${SP1_PROVE_HEAVY_FORCE:-}" != "1" && "${GITHUB_ACTIONS:-}" != "true" && "${avail_kib}" -lt "${need_kib}" ]]; then
+    echo "SP1_PROVE_HEAVY refused: MemAvailable=${avail_kib} KiB (<10 GiB)." >&2
+    echo "Do not force on a laptop you care about; use CI prove_heavy / a big machine." >&2
+    exit 1
+  fi
   SP1_PROVER=cpu ./target/release/sp1_smoke --prove-one 0
 else
   SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0

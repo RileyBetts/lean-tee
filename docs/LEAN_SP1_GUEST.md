@@ -66,7 +66,24 @@ Mock prove+verify of case 0 (compliance-allow-yes) OK via `SP1_PROVER=mock ./tar
 
 ### Measurement note
 
-`codeHash = SHA256(code_id)` identifies the **logical** operator (`compliance_operator`, `guest_prog_runtime`, …). The **executable** identity for SP1 is the proving key / ELF (`lean_tee_guest_lean`). ELF digests are not folded into `codeHash` yet.
+`codeHash = SHA256(code_id)` identifies the **logical** operator (`compliance_operator`, `guest_prog_runtime`, …). The **executable** identity for SP1 is the proving key / ELF (`lean_tee_guest_lean`).
+
+Wire `Measurement` is **not** extended: counterparties pin the executable via published digests:
+
+| Field | Meaning |
+| --- | --- |
+| `elf_sha256` | SHA-256 of the `lean_tee_guest_lean` ELF bytes |
+| `vk_hash_bytes` / `vk_bytes32` | SP1 verifying-key digest (`HashableKey`) |
+
+Regenerate / publish:
+
+```bash
+bash scripts/sp1_guest_digest.sh                  # → artifacts/sp1_guest_digests.json
+# or during CI smoke:
+# sp1_smoke --execute-only --print-digests --write-digests artifacts/sp1_guest_digests.json
+```
+
+CI uploads the same JSON as the `sp1-guest-digests` artifact on `sp1-execute`. Real CPU prove+verify of one Lean-ELF case is **gated** (`workflow_dispatch` → `prove_one` + `prove_heavy`). Do **not** run local `SP1_PROVER=cpu --prove-one` on ≤16 GiB hosts — it can OOM/lock the machine; scripts require ≥10 GiB free or `SP1_PROVE_HEAVY_FORCE=1`.
 
 ### SP1 FENCE note
 

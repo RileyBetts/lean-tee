@@ -15,6 +15,8 @@ Sibling [anchor-chain](../../anchor-chain) Strict Mode can attest with **per-int
 
 Continue to store hex fields from the receipt (`code_hash_hex`, `config_hash_hex`, `evidence_root_hex`, `proof_ref_hex`, …). Ensure OpenBallot / Negotiate `attestation_profile` matches the suite (`lean-tee-v1` mock demos; `lean-tee-v2` when SP1 host verify is wired).
 
+For **lean-tee-v2**, also pin the SP1 executable digests from [`artifacts/sp1_guest_digests.json`](../artifacts/sp1_guest_digests.json) (`elf_sha256`, `vk_bytes32`). These are **not** on the receipt wire; they bind the verifying key / guest image the prover must use. Regenerate with `bash scripts/sp1_guest_digest.sh` after guest rebuilds.
+
 ## Live Execute
 
 ```bash
