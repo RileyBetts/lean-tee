@@ -72,9 +72,11 @@ Mock prove+verify of case 0 (compliance-allow-yes) OK via `SP1_PROVER=mock ./tar
 
 SP1 does not implement RISC-V `FENCE`. Lean 4.32’s `lean_obj_once` inlines a C11 `_Atomic` seq_cst load that emits `fence`. LEAN_SP1 patches demote `lean_once_cell_t` to plain `int` and make `*_once_cold` fence-free.
 
-## Phase 4b (next)
+## Phase 4b — Init allow-list RFC
 
-Bounded Init growth under [`docs/LEAN_SP1_INIT_RFC.md`](LEAN_SP1_INIT_RFC.md) (to be written) — demand-driven allow-list, not a full kernel.
+Policy: [`docs/LEAN_SP1_INIT_RFC.md`](LEAN_SP1_INIT_RFC.md).
+
+**Decision (this revision):** Lean shims in GuestProg (`joinSep` / `parseNatDec?` / `natToDec`) cover the measured surface; **no new Init modules** admitted. Growth requires the RFC admission checklist (demand, ISA/fence check, smoke, cycle/size budgets). Soft/hard size checks live in `scripts/sp1_lean_guest_build.sh`.
 
 ## Non-goals (yet)
 

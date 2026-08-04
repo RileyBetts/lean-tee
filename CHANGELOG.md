@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Phase 4b — Init allow-list RFC
+
+- [`docs/LEAN_SP1_INIT_RFC.md`](docs/LEAN_SP1_INIT_RFC.md): allow-list, FENCE/init traps, admission rule, cycle/size budgets.
+- Decision: current GuestProg Lean shims suffice; no new Init modules. Guest build script enforces hard archive size cap (6 MiB).
+
 ### Phase 4a — Lean guest hardening
 
 - `sp1_smoke` covers compliance **and** GuestProg on `lean_tee_guest_lean` (CI entry).
