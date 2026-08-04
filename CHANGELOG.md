@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Phase 4a — Lean guest hardening
+
+- `sp1_smoke` covers compliance **and** GuestProg on `lean_tee_guest_lean` (CI entry).
+- SP1 CI pins Lean **4.32.1**, requires `sp1up --c-toolchain`, optional mock `--prove-one`.
+- `codeHash` remains `SHA256(code_id)`; ELF identity is SP1 vk/ELF (not an ELF digest in measurement).
+
 ### Breaking — Lean SP1 guest cutover (Phase 3)
 
 - **Measured SP1 ELF** is now Lean-compiled (`lean_tee_guest_lean` / `host/guest_lean`), not the Rust twin (`host/guest`).

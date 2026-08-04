@@ -1,11 +1,11 @@
-# Lean-compiled SP1 guest (in progress)
+# Lean-compiled SP1 guest
 
 ## Goal
 
 Measured SP1 guest ELF produced from **Lean → C → RISC-V**, not a Rust semantic twin.
 SP1 is retained for the Lean-oriented prover formalization track (`sp1-lean`).
 
-Plan: see [lean-sp1-guest-plan.html](lean-sp1-guest-plan.html) / Cursor plan `lean_sp1_guest_no_rust_twin`.
+Plan: see [lean-sp1-guest-plan.html](lean-sp1-guest-plan.html).
 
 ## Phase 0 (landed spike)
 
@@ -17,71 +17,64 @@ Plan: see [lean-sp1-guest-plan.html](lean-sp1-guest-plan.html) / Cursor plan `le
 | SP1 guest crate | [`host/guest_lean_spike`](../host/guest_lean_spike) |
 | Smoke | `sp1_lean_spike_smoke` (execute-only) |
 
-Prerequisite: SP1 with the RISC-V C toolchain (`sp1up --c-toolchain`), so `cc` can compile guest C for `riscv64im-succinct-zkvm-elf`:
+Prerequisite: SP1 with the RISC-V C toolchain (`sp1up --c-toolchain`):
 
 ```bash
 export PATH="$HOME/.sp1/bin:$PATH"
-export CC_riscv64im_succinct_zkvm_elf="${CC_riscv64im_succinct_zkvm_elf:-$HOME/.sp1/bin/riscv64-unknown-elf-gcc}"
-
-bash scripts/sp1_lean_spike_sync.sh
-cd host
-cargo build -p lean_tee_prove_server --release --features sp1 --bin sp1_lean_spike_smoke
-SP1_PROVER=cpu ./target/release/sp1_lean_spike_smoke
-# or: CARGO_TARGET_DIR=… ./$CARGO_TARGET_DIR/release/sp1_lean_spike_smoke
+export CC_riscv64im_succinct_zkvm_elf="${CC_riscv64im_succinct_zkvm_elf:-$HOME/.sp1/riscv/bin/riscv64-unknown-elf-gcc}"
 ```
 
-Phase 0 uses **UInt32-only** Lean exports **without** full `Init` runtime initialization (same idea as Anoma’s lightweight RISC0 Lean example). Verified: `sp1_lean_spike_smoke OK tag=0x4c535031 sum=42`.
-
-## Phase 1–2 — runtime + compliance + GuestProg
+## Phase 1–3 — compliance, GuestProg, cutover
 
 | Piece | Path |
 | --- | --- |
 | Pure Lean entry | [`LeanTee/GuestSp1.lean`](../LeanTee/GuestSp1.lean) (`lean_tee_guest_run`) |
-| GuestProg | [`LeanTee/GuestProg.lean`](../LeanTee/GuestProg.lean) (slimmed for SP1 Init) |
-| Portable SHA-256 | [`native/sha256_portable.c`](../native/sha256_portable.c) (same ABI as OpenSSL FFI) |
+| GuestProg | [`LeanTee/GuestProg.lean`](../LeanTee/GuestProg.lean) |
+| Portable SHA-256 | [`native/sha256_portable.c`](../native/sha256_portable.c) |
 | Runtime overlays | [`host/lean_sp1_runtime/`](../host/lean_sp1_runtime/) |
 | Minimal Init | [`host/lean_sp1_init_min/`](../host/lean_sp1_init_min/) + `scripts/sp1_lean_guest_build.sh` |
-| SP1 guest crate | [`host/guest_lean/`](../host/guest_lean/) |
-| Fetch / build | `scripts/sp1_lean_runtime_{fetch,build}.sh` → `.cache/lean-sp1-runtime/` |
+| Measured guest | [`host/guest_lean/`](../host/guest_lean/) (`lean_tee_guest_lean`) |
+| CI smoke | `sp1_smoke` (compliance + GuestProg) |
 
 ```bash
 bash scripts/sp1_lean_runtime_fetch.sh
-bash scripts/sp1_lean_runtime_build.sh   # → .cache/lean-sp1-runtime/prefix/lib/libLean.a
-bash scripts/sp1_lean_guest_build.sh     # → .cache/lean-sp1-guest/libLeanTeeGuest.a
+bash scripts/sp1_lean_runtime_build.sh
+bash scripts/sp1_lean_guest_build.sh
 cd host
-cargo build -p lean_tee_prove_server --release --features sp1 \
-  --bin sp1_lean_guest_smoke --bin sp1_lean_guestprog_smoke
-SP1_PROVER=cpu ./target/release/sp1_lean_guest_smoke
-SP1_PROVER=cpu ./target/release/sp1_lean_guestprog_smoke
+cargo build -p lean_tee_prove_server --release --features sp1 --bin sp1_smoke
+SP1_PROVER=cpu ./target/release/sp1_smoke --execute-only
+SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0   # gated; OOM-safe
+# or: bash scripts/sp1_execute_ci.sh
 ```
 
 ### Verified
 
-- **Host:** Lake GuestSp1 C + Init subset + portable SHA: `decision=allow` for `action=vote.yes`.
-- **SP1 compliance (empty program):** `sp1_lean_guest_smoke` / `sp1_smoke` match Rust `run_compliance`.
-- **SP1 GuestProg (non-empty program):** `sp1_lean_guestprog_smoke` matches Rust `run_measured` for v1/v2 goldens.
-- **Phase 3 cutover:** Prove server and CI measure `lean_tee_guest_lean`; `code_id`s use `…/lean-sp1/v1`.
+- Host Lake GuestSp1 + Init subset + portable SHA.
+- SP1 execute: compliance + GuestProg via `sp1_smoke` / dedicated lean smokes.
+- Phase 3: Prove server measures Lean ELF; `code_id`s use `…/lean-sp1/v1`.
+- Phase 4a: `sp1_smoke` is the CI entry; Lean 4.32.1 + C toolchain required in `sp1-execute.yml`.
+
+### Execute baselines (Phase 4a, local)
+
+| Case | Cycles (approx.) |
+| --- | --- |
+| compliance allow/deny | ~73k–79k |
+| GuestProg v1 | ~230k |
+| GuestProg v2 allow | ~387k |
+
+Mock prove+verify of case 0 (compliance-allow-yes) OK via `SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0`.
+
+### Measurement note
+
+`codeHash = SHA256(code_id)` identifies the **logical** operator (`compliance_operator`, `guest_prog_runtime`, …). The **executable** identity for SP1 is the proving key / ELF (`lean_tee_guest_lean`). ELF digests are not folded into `codeHash` yet.
 
 ### SP1 FENCE note
 
-SP1 does not implement RISC-V `FENCE`. Lean 4.32’s `lean_obj_once` inlines a C11 `_Atomic` seq_cst load that emits `fence` → `got unimplemented as opcode`. The LEAN_SP1 patches demote `lean_once_cell_t` to plain `int` and make `*_once_cold` fence-free; `scripts/sp1_lean_runtime_build.sh` overlays the patched `lean.h` into the runtime prefix.
+SP1 does not implement RISC-V `FENCE`. Lean 4.32’s `lean_obj_once` inlines a C11 `_Atomic` seq_cst load that emits `fence`. LEAN_SP1 patches demote `lean_once_cell_t` to plain `int` and make `*_once_cold` fence-free.
 
-Also: GuestProg avoids heavy Init (`String.intercalate` / `Slice`) and uses a real `l_Nat_reprFast` (or `natToDec`) so v2 `max_input_bytes=` hashes match Rust.
+## Phase 4b (next)
 
-Diagnostic bisect helper: [`host/lean_sp1_runtime/once_probe.c`](../host/lean_sp1_runtime/once_probe.c).
-
-Runtime build (Lean **4.32.1**, not Anoma 4.22):
-
-```bash
-bash scripts/sp1_lean_runtime_fetch.sh   # sparse-clone + LEAN_SP1 patch
-bash scripts/sp1_lean_runtime_build.sh   # → .cache/lean-sp1-runtime/prefix/lib/libLean.a
-```
-
-
-## Later phases
-
-1. Stretch: larger Init / kernel-like surface
-2. Optional: ELF-digest measurements / prove-heavy CI
+Bounded Init growth under [`docs/LEAN_SP1_INIT_RFC.md`](LEAN_SP1_INIT_RFC.md) (to be written) — demand-driven allow-list, not a full kernel.
 
 ## Non-goals (yet)
 

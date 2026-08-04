@@ -1,8 +1,8 @@
 name: sp1-execute
 
-# Gated SP1 path: nightly + manual. Does execute-only (not full CPU prove) to stay
-# believable for lean-tee-v2 without OOM on typical runners.
-# Mock prove (lean-tee-v1) must never be the production / hero default.
+# Gated SP1 path: weekly + manual. Default = execute-only on Lean guest ELF.
+# Optional mock prove-one (workflow_dispatch or schedule with SP1_PROVE_ONE).
+# Real CPU prove only via SP1_PROVE_HEAVY (repo var / local) — OOM risk.
 
 on:
   schedule:
@@ -10,32 +10,38 @@ on:
   workflow_dispatch:
     inputs:
       prove_one:
-        description: "Also run one prove (mock by default; set SP1_PROVE_HEAVY via repo vars carefully)"
+        description: "Also run one prove (mock by default; set SP1_PROVE_HEAVY carefully)"
         type: boolean
-        default: false
+        default: true
 
 jobs:
   sp1-execute-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install Lean (elan)
+      - name: Install Lean 4.32.1 (elan)
         run: |
           set -euo pipefail
-          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf \
+            | sh -s -- -y --default-toolchain leanprover/lean4:v4.32.1
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/lean" --version
+          "$HOME/.elan/bin/lake" --version
       - name: Install SP1 toolchain (+ C)
         run: |
           set -euo pipefail
           curl -L https://sp1up.succinct.xyz | bash
           echo "$HOME/.sp1/bin" >> "$GITHUB_PATH"
           echo "$HOME/.sp1/riscv/bin" >> "$GITHUB_PATH"
-          "$HOME/.sp1/bin/sp1up" || sp1up
-          "$HOME/.sp1/bin/sp1up" --c-toolchain || true
-      - name: SP1 execute-only
+          "$HOME/.sp1/bin/sp1up"
+          "$HOME/.sp1/bin/sp1up" --c-toolchain
+          test -x "$HOME/.sp1/riscv/bin/riscv64-unknown-elf-gcc"
+          "$HOME/.sp1/riscv/bin/riscv64-unknown-elf-gcc" --version | head -1
+      - name: SP1 Lean guest smoke
         env:
+          # Schedule: execute-only. Manual: prove_one default true → mock prove case 0.
           SP1_PROVE_ONE: ${{ github.event_name == 'workflow_dispatch' && inputs.prove_one && '1' || '0' }}
           CARGO_TERM_COLOR: always
         run: bash scripts/sp1_execute_ci.sh

@@ -35,12 +35,13 @@ cd "$ROOT/host"
 echo "== build sp1_smoke (Lean guest ELF) =="
 cargo build -p lean_tee_prove_server --release --bin sp1_smoke --features sp1
 
-echo "== SP1 execute-only (Lean guest; no prove) =="
+echo "== SP1 execute-only (compliance + GuestProg; Lean guest) =="
 SP1_PROVER=cpu ./target/release/sp1_smoke --execute-only
 
 if [[ "${SP1_PROVE_ONE:-}" == "1" ]]; then
-  echo "== optional single mock prove (set SP1_PROVE_HEAVY=1 for CPU prove) =="
+  echo "== optional single prove (case 0 = compliance-allow-yes) =="
   if [[ "${SP1_PROVE_HEAVY:-}" == "1" ]]; then
+    echo "SP1_PROVE_HEAVY=1 → real CPU prove (watch memory)"
     SP1_PROVER=cpu ./target/release/sp1_smoke --prove-one 0
   else
     SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0
