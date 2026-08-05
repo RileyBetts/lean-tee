@@ -8,4 +8,4 @@ description = "lean-tee compliance operator (guest + host); receipt crypto via l
 [dependencies]
 hex = "0.4"
 lean_tee_receipt = { path = "../receipt" }
-sha2 = "0.10"
+sha2 = "0.11"
