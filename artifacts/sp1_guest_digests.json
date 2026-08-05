@@ -3,10 +3,10 @@
   "profile": "lean-tee-v2",
   "code_id_example": "lean-tee/compliance_operator/lean-sp1/v1",
   "code_hash": "bec5a1b6fd790b3332da9ebdd744dbe4d58612fa9de64321298ddea05a40784f",
-  "elf_sha256": "45c794636715f66438e56904920c0a776593db32566239701e2574588fcb5f93",
-  "elf_bytes": 2109976,
-  "vk_hash_bytes": "0962c2a05d57255918a308f573372cb37e24d0c5016d04df1eb8f58b2cbd62d0",
-  "vk_bytes32": "0x0012c58541755c9564c51847af3372cb3fc49a18a05b4137cf5c7ac5acbd62d0",
+  "elf_sha256": "23e1bf0a53cc733746c898e561fde4eeffef403f53425f1e49c62d05f524744a",
+  "elf_bytes": 2128064,
+  "vk_hash_bytes": "49223f521ef81309217bbfb46f9820ed68a26bf52a5911801b90df8a025bd915",
+  "vk_bytes32": "0x0092447ea47be04c250bddfda6f9820edd144d7eaa9644600dc86fc5025bd915",
   "sp1_version": "6.3.1",
   "note": "Wire Measurement remains codeHash+configHash (logical code_id). elf_sha256 / vk_* pin the SP1 executable for counterparties and host verify."
 }
