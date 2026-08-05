@@ -137,6 +137,7 @@ SP1 ownership split (Lean guest + glue vs upstream prover): [docs/LEAN_SP1_GUEST
 ## Community
 
 - [Getting started](docs/GETTING_STARTED.md) · [Contributing](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Security](SECURITY.md)
+- [Public release review scorecard](docs/RELEASE_REVIEW.md)
 
 ## Status
 

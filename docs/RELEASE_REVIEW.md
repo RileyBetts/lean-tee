@@ -47,11 +47,11 @@ Gate checklist before flipping [RileyBetts/lean-tee](https://github.com/RileyBet
 
 | Step | Status |
 | --- | --- |
-| Land hygiene fixes on `main` | Pending push/merge |
-| Enable private vulnerability reporting | Pending (GitHub settings) |
-| Set visibility public | Pending |
-| Fresh-clone verify | Pending after public |
-| Release note / Reservoir watch | Pending after public |
+| Land hygiene fixes on `main` | **Done** (`9e0a49b`) |
+| Enable vulnerability alerts / secret scanning | **Done** |
+| Set visibility public | **Done** — https://github.com/RileyBetts/lean-tee |
+| Fresh-clone verify | **Done** — `git clone` + `lake update` (lean-grpc v1.0.0) |
+| Release note / Reservoir watch | **Done** — `v1.0.0` release notes updated; watch Reservoir over coming days |
 
 ## Deferred (honest roadmap)
 
