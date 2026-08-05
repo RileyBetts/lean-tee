@@ -46,11 +46,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: lean-tee
-      - uses: actions/checkout@v4
-        with:
-          repository: RileyBetts/lean-grpc
-          ref: v1.0.0
-          path: lean-grpc
       - uses: dtolnay/rust-toolchain@stable
       - name: Install deps
         run: |
@@ -101,11 +96,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: lean-tee
-      - uses: actions/checkout@v4
-        with:
-          repository: RileyBetts/lean-grpc
-          ref: v1.0.0
-          path: lean-grpc
       - uses: dtolnay/rust-toolchain@stable
       - name: Install deps
         run: |

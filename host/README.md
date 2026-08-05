@@ -33,7 +33,9 @@ cd .. && bash scripts/sp1_test_careful.sh          # execute (cpu) + prove (mock
 # SP1_PROVE_HEAVY=1 SP1_PROVE_HEAVY_FORCE=1 bash scripts/sp1_test_careful.sh
 ```
 
-Production profile: `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` + `LEAN_TEE_PROVE_ADDR` to this `prove_server`. Mock is CI/dev only.
+Production profile: `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` + `LEAN_TEE_PROVE_ADDR` to this `prove_server`. Without `LEAN_TEE_PROVE_ADDR`, teeServer refuses to start (unless `LEAN_TEE_ALLOW_MOCK_V2=1`). Mock is CI/dev only.
+
+SP1 guest stdin: `code_hash`, `config_hash`, `inputs`, `program`, `rules` — see [docs/LEAN_SP1_GUEST.md](../docs/LEAN_SP1_GUEST.md).
 
 Or manually:
 

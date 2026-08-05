@@ -26,6 +26,9 @@ if [[ ! -x "${CC_riscv64im_succinct_zkvm_elf}" ]]; then
 fi
 
 cd "$ROOT"
+if [[ ! -d "$ROOT/.lake/packages/lean-grpc" && ! -d "$ROOT/../lean-grpc" ]]; then
+  lake update
+fi
 echo "== free memory =="
 free -h | head -2
 

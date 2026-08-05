@@ -22,7 +22,8 @@ def main : IO Unit := do
     cmd := (binDir / "teeServer").toString
     env := #[
       ("LEAN_TEE_PORT", some (toString teePort.toNat)),
-      ("LEAN_TEE_PROVE_ADDR", some s!"127.0.0.1:{provePort.toNat}")
+      ("LEAN_TEE_PROVE_ADDR", some s!"127.0.0.1:{provePort.toNat}"),
+      ("LEAN_TEE_DEFAULT_PROFILE", some "lean-tee-v1")
     ]
   }
   try

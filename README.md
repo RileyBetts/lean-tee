@@ -30,9 +30,11 @@ Set `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` and wire `LEAN_TEE_PROVE_ADDR` to an 
 
 ## Quickstart (mock — CI/demo only)
 
-Requires Lean 4 (`lean-toolchain`), OpenSSL, and a [lean-grpc](https://github.com/RileyBetts/lean-grpc) checkout (git-pinned; see below).
+Requires Lean 4 (`lean-toolchain`), OpenSSL, and `lake update` (pulls [lean-grpc](https://github.com/RileyBetts/lean-grpc) v1.0.0).
 
 **This path uses `lean-tee-v1` mock prove. Do not treat it as production attestation.**
+
+Full setup: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
 
 ```bash
 lake build receiptTests teeServer teeClient teeLoopback
@@ -86,7 +88,7 @@ LEAN_TEE_PROVE_MODE=mock LEAN_TEE_PROVE_PORT=50072 \
 - Shared Rust algorithms: crate `lean_tee_receipt` under [`host/receipt`](host/receipt)
 - Production prove: SP1 Hypercube via `lean-tee-v2` + host verify
 
-Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [CONFIDENTIALITY](docs/CONFIDENTIALITY.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
+Docs: [GETTING_STARTED](docs/GETTING_STARTED.md) · [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [CONFIDENTIALITY](docs/CONFIDENTIALITY.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
 
 ## Layout
 
@@ -114,9 +116,13 @@ SP1 ownership split (Lean guest + glue vs upstream prover): [docs/LEAN_SP1_GUEST
 
 ## Dependencies
 
-- [lean-grpc](https://github.com/RileyBetts/lean-grpc) **v1.0.0** as sibling `../lean-grpc` (CI checks out that tag; see [docs/PRODUCT.md](docs/PRODUCT.md))
+- [lean-grpc](https://github.com/RileyBetts/lean-grpc) **v1.0.0** — fetched by `lake update` (git pin in [`lakefile.lean`](lakefile.lean); see [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md))
 - OpenSSL (`libssl-dev`, `pkg-config`)
 - Optional: [SP1](https://github.com/succinctlabs/sp1) toolchain (`sp1up`) for `lean-tee-v2` / `--features sp1` (upstream **MIT OR Apache-2.0**)
+
+## Community
+
+- [Getting started](docs/GETTING_STARTED.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 ## Status
 

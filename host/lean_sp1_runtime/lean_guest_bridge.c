@@ -13,8 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern lean_object *lean_tee_guest_run(lean_object *config_hash, lean_object *inputs,
-                                       lean_object *program);
+extern lean_object *lean_tee_guest_run(lean_object *code_hash, lean_object *config_hash,
+                                       lean_object *inputs, lean_object *program,
+                                       lean_object *rules);
 /* Lake package «lean-tee» → C prefix lean_x2dtee_ */
 extern lean_object *initialize_lean_x2dtee_LeanTee_GuestSp1(uint8_t builtin);
 extern void lean_initialize_runtime_module(void);
@@ -54,14 +55,18 @@ static void ensure_lean_init(void) {
  * Caller frees *out_bytes with free().
  * Returns 0 on success, non-zero on allocation failure.
  */
-int lean_tee_sp1_guest_run(const uint8_t *config_hash, size_t config_hash_len,
+int lean_tee_sp1_guest_run(const uint8_t *code_hash, size_t code_hash_len,
+                           const uint8_t *config_hash, size_t config_hash_len,
                            const uint8_t *inputs, size_t inputs_len, const uint8_t *program,
-                           size_t program_len, uint8_t **out_bytes, size_t *out_len) {
+                           size_t program_len, const uint8_t *rules, size_t rules_len,
+                           uint8_t **out_bytes, size_t *out_len) {
   ensure_lean_init();
+  lean_object *code = byte_array_from_c(code_hash, code_hash_len);
   lean_object *cfg = byte_array_from_c(config_hash, config_hash_len);
   lean_object *in = byte_array_from_c(inputs, inputs_len);
   lean_object *prog = byte_array_from_c(program, program_len);
-  lean_object *out = lean_tee_guest_run(cfg, in, prog);
+  lean_object *rul = byte_array_from_c(rules, rules_len);
+  lean_object *out = lean_tee_guest_run(code, cfg, in, prog, rul);
   int rc = c_from_byte_array(out, out_bytes, out_len);
   lean_dec_ref(out);
   return rc;

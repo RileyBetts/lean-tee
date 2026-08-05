@@ -17,10 +17,12 @@ Consumers choose a **named suite**, not an open plugin ABI. Unknown suites **fai
 | Suite id | Hash | Prove | Status |
 | --- | --- | --- | --- |
 | `sha256+mock` | SHA-256 | Mock digest | Empty `crypto_suite` / CI receipts; **not** the production profile |
-| `sha256+sp1` | SHA-256 | SP1 proof commitment | Production prove (`lean-tee-v2`) |
+| `sha256+sp1` | SHA-256 | SP1 proof commitment (`SHA256(bincode(proof))`) | Production prove (`lean-tee-v2`); stamped by `prove_server` after host verify |
 | `blake3+mock` | BLAKE3 | Mock digest over BLAKE3 domains | Optional; library + goldens |
 
-**Profile vs suite:** `LEAN_TEE_DEFAULT_PROFILE` defaults to **`lean-tee-v2`**. `ReceiptMeta.crypto_suite` empty still means **`sha256+mock`** on the wire (legacy / in-process mock Prove). Production deployments must emit `sha256+sp1` via a host-verified SP1 `prove_server`.
+**Profile vs suite:** `LEAN_TEE_DEFAULT_PROFILE` defaults to **`lean-tee-v2`**. Production must set `LEAN_TEE_PROVE_ADDR` to an SP1 `prove_server`. Mock demos set `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v1` (or `LEAN_TEE_ALLOW_MOCK_V2=1`).
+
+`ProveResponse.crypto_suite` carries what the prover actually produced. `teeServer` copies it into `ReceiptMeta.crypto_suite` (no longer hardcodes mock).
 
 Domain separation (preimage first chunk):
 
@@ -33,7 +35,9 @@ Within a suite, digests (`codeHash`, `configHash`, `resultHash`, mock `proof_ref
 
 ## Wire
 
-`ReceiptMeta.crypto_suite` (proto field 4). Empty ⇒ `sha256+mock`.
+`ReceiptMeta.crypto_suite` (proto field 4). Empty ⇒ `sha256+mock`.  
+`ProveRequest.rules` (field 4): raw config bytes for the compliance path (must hash to `measurement.config_hash` when non-empty).  
+`ProveResponse.crypto_suite` (field 3): suite the prover used.
 
 ## Verify rules
 
@@ -41,18 +45,25 @@ Within a suite, digests (`codeHash`, `configHash`, `resultHash`, mock `proof_ref
 2. If suite unknown → reject.
 3. Recompute `resultHash` with that suite’s hash + domain.
 4. For `*+mock`, recompute mock proof the same way.
-5. For `*+sp1`, require host-verified proof (never client `proof_ok` alone).
+5. For `sha256+sp1` on Lean `teeServer` Accept:
+   - Accept if this server previously issued the receipt via Execute (after `prove_server` host-verified), **or**
+   - `LEAN_TEE_TRUST_PROOF_OK=1` and client `proof_ok` (external verify path), **else** reject.
+6. External verifiers should check SP1 proof + published `vk_*` digests (see `artifacts/sp1_guest_digests.json`).
 
-**Lean teeServer** issues and Accept-checks `sha256+mock` / `sha256+sp1` (host trust flag).  
+**Lean teeServer** issues `sha256+mock` / `sha256+sp1` as returned by Prove.  
 **`blake3+mock`** is verified via `lean_tee_receipt` (Rust); Lean Accept rejects it with a clear reason so the TCB stays explicit.
 
 ## Guardrails
 
 - Do not silently change `sha256+mock` goldens.
 - Suites cannot cross-verify (domains differ).
-- Anchor Strict should allow-list suites it can check (`sha256+mock` today).
+- Do not run `lean-tee-v2` without `LEAN_TEE_PROVE_ADDR` in production.
+- `confidentiality=local` forces mock prove and rejects under `lean-tee-v2`.
+- Anchor Strict should allow-list suites it can check.
 
 ## Env
 
-- `LEAN_TEE_CRYPTO_SUITE` — preferred suite for producers that honor it (Rust clients / future Execute). Empty / unset ⇒ `sha256+mock` on the receipt field (CI-friendly); prefer `sha256+sp1` with a real Prove backend.
-- `LEAN_TEE_DEFAULT_PROFILE` — operational profile hint (`lean-tee-v2` default); see [PRODUCT.md](PRODUCT.md).
+- `LEAN_TEE_CRYPTO_SUITE` — preferred suite for producers that honor it (Rust clients / future Execute).
+- `LEAN_TEE_DEFAULT_PROFILE` — `lean-tee-v2` (default) or `lean-tee-v1`.
+- `LEAN_TEE_PROVE_ADDR` — required for v2 (unless `LEAN_TEE_ALLOW_MOCK_V2=1`).
+- `LEAN_TEE_TRUST_PROOF_OK` — allow Accept of foreign SP1 receipts when client sets `proof_ok` (after external verify).

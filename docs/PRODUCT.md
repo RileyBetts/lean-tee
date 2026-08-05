@@ -44,13 +44,13 @@ Registry file: [`config/guests/registry.json`](../config/guests/registry.json) (
 | Confidentiality | No | No |
 | CI gate | Weekly + manual SP1 execute ([`sp1-execute.yml`](../.github/workflows/sp1-execute.yml)) | Push/PR mock demos |
 
-`LEAN_TEE_DEFAULT_PROFILE` defaults to **`lean-tee-v2`**. Without `LEAN_TEE_PROVE_ADDR`, the server still runs in-process mock Prove and logs a warning — wire SP1 for real v2.
+`LEAN_TEE_DEFAULT_PROFILE` defaults to **`lean-tee-v2`**. Without `LEAN_TEE_PROVE_ADDR`, the server **refuses to start** unless `LEAN_TEE_ALLOW_MOCK_V2=1` (demos only). Wire SP1 `prove_server` for real v2.
 
 ## Enterprise packaging
 
 See [ENTERPRISE.md](ENTERPRISE.md) and [SLA.md](SLA.md): mTLS (proxy), tenant ACL, API keys, audit JSONL, quotas, metrics, durable job store. Mock prove remains **CI/dev only**.
 
-Optional **local** confidentiality (`LEAN_TEE_CONFIDENTIALITY=local`): secrets via sealed worker — not Nitro; see [CONFIDENTIALITY.md](CONFIDENTIALITY.md).
+Optional **local** confidentiality (`LEAN_TEE_CONFIDENTIALITY=local`): secrets via sealed worker — not Nitro; **`lean-tee-v1` / mock only** (incompatible with SP1); see [CONFIDENTIALITY.md](CONFIDENTIALITY.md).
 
 ## Non-goals
 
@@ -74,13 +74,14 @@ Optional **local** confidentiality (`LEAN_TEE_CONFIDENTIALITY=local`): secrets v
 
 ## lean-grpc pin
 
-Require sibling checkout at **https://github.com/RileyBetts/lean-grpc/tree/v1.0.0** as `../lean-grpc`. GitHub Actions checks out that tag beside this repo.
+`lakefile.lean` requires [lean-grpc **v1.0.0**](https://github.com/RileyBetts/lean-grpc/tree/v1.0.0) via git (`lake update`). A sibling `../lean-grpc` checkout is optional.
 
 ## Roadmap (integrity multi-guest)
 
 1. ~~Declarative guest registry + first-party operators~~ (shipped)
 2. ~~Enterprise control plane (ACL, audit, quotas, mTLS docs)~~ (shipped)
 3. ~~Production `lean-tee-v2` default + gated SP1 execute CI + GuestProg v2~~ (shipped; durable jobs via `LEAN_TEE_JOB_DIR`)
-4. SDK `guest_id` + Anchor multi-guest packs (deeper consumer wiring)
-5. Optional: fold ELF/vk digests into wire `Measurement` (v3 profile); three-way GuestProg goldens; request metadata auth
+4. ~~SP1 guest binds `codeHash` + rules; suite stamping; fail-closed v2/mock/confidentiality~~ (shipped)
+5. SDK `guest_id` + Anchor multi-guest packs (deeper consumer wiring)
+6. Optional: fold ELF/vk digests into wire `Measurement` (v3 profile); three-way GuestProg goldens; request metadata auth
    - *Done (off-wire):* published `artifacts/sp1_guest_digests.json` + Anchor docs pin; gated CPU prove via `prove_heavy`

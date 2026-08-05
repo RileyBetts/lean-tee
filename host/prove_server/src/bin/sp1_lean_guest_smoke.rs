@@ -2,17 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Phase-1: execute Lean-compiled GuestSp1 compliance path inside SP1 (execute-only).
-//!
-//! ```bash
-//! bash scripts/sp1_lean_runtime_build.sh
-//! bash scripts/sp1_lean_guest_build.sh
-//! cargo build -p lean_tee_prove_server --release --features sp1 --bin sp1_lean_guest_smoke
-//! SP1_PROVER=cpu ./target/release/sp1_lean_guest_smoke
-//! ```
 
-use lean_tee_compliance::run_compliance;
-use lean_tee_receipt::sha256;
-use sp1_sdk::{blocking::{Prover, ProverClient}, include_elf, Elf, SP1Stdin};
+use lean_tee_compliance::{code_hash_for, run_measured, COMPLIANCE};
+use lean_tee_receipt::{sha256, CryptoSuite};
+use sp1_sdk::{
+    blocking::{Prover, ProverClient},
+    include_elf, Elf, SP1Stdin,
+};
 
 const ELF: Elf = include_elf!("lean_tee_guest_lean");
 
@@ -22,17 +18,20 @@ fn main() {
         std::env::set_var("SP1_PROVER", "cpu");
     }
 
-    // GuestSp1 uses empty rulesRaw → default allow prefixes (vote.yes / vote.no / …).
-    let rules = b"";
+    let suite = CryptoSuite::Sha256Mock;
+    let code = code_hash_for(&COMPLIANCE, suite);
+    let rules = b"allow=vote.yes,vote.no\n";
     let config_hash = sha256(rules);
     let inputs = b"action=vote.yes\n".to_vec();
     let program: Vec<u8> = Vec::new();
-    let expect = run_compliance(&config_hash, &inputs);
+    let expect = run_measured(&code, &config_hash, &inputs, &program, rules).expect("native");
 
     let mut stdin = SP1Stdin::new();
+    stdin.write(&code);
     stdin.write(&config_hash);
     stdin.write(&inputs);
     stdin.write(&program);
+    stdin.write(&rules.to_vec());
 
     let client = ProverClient::from_env();
     let (pv, report) = client
@@ -50,8 +49,7 @@ fn main() {
     );
 
     println!(
-        "sp1_lean_guest_smoke OK decision starts {:?} cycles={}",
-        expect.iter().take(20).map(|&b| b as char).collect::<String>(),
+        "sp1_lean_guest_smoke OK cycles={}",
         report.total_instruction_count()
     );
 }

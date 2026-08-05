@@ -28,7 +28,7 @@ LEAN_TEE_TENANT=votes-only \
 LEAN_TEE_AUDIT_FILE="$AUDIT" \
 LEAN_TEE_JOB_DIR="$JOBDIR" \
 LEAN_TEE_METRICS=1 \
-LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2 \
+LEAN_TEE_DEFAULT_PROFILE=lean-tee-v1 \
   ./.lake/build/bin/teeServer >>"$LOG" 2>&1 &
 PID=$!
 wait_port 127.0.0.1 "$PORT"

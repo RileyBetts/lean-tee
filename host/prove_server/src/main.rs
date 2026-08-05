@@ -8,11 +8,8 @@
 //! - `LEAN_TEE_PROVE_MODE=mock` — force mock even when SP1 feature is enabled
 //! - `SP1_PROVER` — when SP1 enabled (default `cpu`)
 
-use lean_tee_compliance::{
-    code_hash_for, mock_proof, resolve_guest_by_code_hash, run_measured, COMPLIANCE,
-    GUEST_PROG_RUNTIME, RUNTIME_CODE_ID,
-};
-use lean_tee_receipt::{sha256, CryptoSuite};
+use lean_tee_compliance::run_measured;
+use lean_tee_receipt::{SUITE_SHA256_MOCK, SUITE_SHA256_SP1};
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
 
@@ -36,35 +33,38 @@ impl Prove for ProveSvc {
         if m.code_hash.len() != 32 {
             return Err(Status::invalid_argument("code_hash must be 32 bytes"));
         }
-        let suite = CryptoSuite::Sha256Mock;
-        let guest = resolve_guest_by_code_hash(&m.code_hash, suite).unwrap_or(&COMPLIANCE);
         if m.config_hash.len() != 32 {
             return Err(Status::invalid_argument("config_hash must be 32 bytes"));
         }
         let mut cfg = [0u8; 32];
         cfg.copy_from_slice(&m.config_hash);
 
-        let (outputs, proof_ref) = if use_mock() {
-            warn!(guest = guest.guest_id, "mock Prove — lean-tee-v1 (not a zk proof)");
-            let outputs = run_measured(&cfg, &req.inputs, &req.program)
-                .map_err(|e| Status::invalid_argument(e))?;
-            let proof = mock_proof(&m.code_hash, &m.config_hash, &req.inputs, &outputs);
-            (outputs, proof.to_vec())
+        let (outputs, proof_ref, crypto_suite) = if use_mock() {
+            warn!("mock Prove — lean-tee-v1 (not a zk proof)");
+            let outputs = run_measured(
+                &m.code_hash,
+                &cfg,
+                &req.inputs,
+                &req.program,
+                &req.rules,
+            )
+            .map_err(Status::invalid_argument)?;
+            let proof = lean_tee_compliance::mock_proof(
+                &m.code_hash,
+                &m.config_hash,
+                &req.inputs,
+                &outputs,
+            );
+            (outputs, proof.to_vec(), SUITE_SHA256_MOCK.to_string())
         } else {
             #[cfg(feature = "sp1")]
             {
-                prove_sp1(&m, &req.inputs, &req.program)
-                    .map_err(|e| Status::internal(format!("SP1 prove failed: {e}")))?
+                let (outputs, proof_ref) = prove_sp1(&m, &req.inputs, &req.program, &req.rules)
+                    .map_err(|e| Status::internal(format!("SP1 prove failed: {e}")))?;
+                (outputs, proof_ref, SUITE_SHA256_SP1.to_string())
             }
             #[cfg(not(feature = "sp1"))]
             {
-                let _ = (
-                    guest,
-                    code_hash_for(&COMPLIANCE, suite),
-                    GUEST_PROG_RUNTIME,
-                    RUNTIME_CODE_ID,
-                    sha256,
-                );
                 return Err(Status::failed_precondition(
                     "SP1 not compiled in; rebuild with --features sp1 or set LEAN_TEE_PROVE_MODE=mock",
                 ));
@@ -74,6 +74,7 @@ impl Prove for ProveSvc {
         Ok(Response::new(ProveResponse {
             outputs,
             proof_ref,
+            crypto_suite,
         }))
     }
 }
@@ -90,6 +91,7 @@ fn prove_sp1(
     m: &pb::Measurement,
     inputs: &[u8],
     program: &[u8],
+    rules: &[u8],
 ) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
     use sha2::{Digest, Sha256};
     use sp1_sdk::{
@@ -100,11 +102,15 @@ fn prove_sp1(
     const ELF: Elf = include_elf!("lean_tee_guest_lean");
 
     let mut stdin = SP1Stdin::new();
+    let mut code = [0u8; 32];
+    code.copy_from_slice(&m.code_hash);
     let mut cfg = [0u8; 32];
     cfg.copy_from_slice(&m.config_hash);
+    stdin.write(&code);
     stdin.write(&cfg);
     stdin.write(&inputs.to_vec());
     stdin.write(&program.to_vec());
+    stdin.write(&rules.to_vec());
 
     let client = ProverClient::from_env();
     let (public_values, report) = client.execute(ELF, stdin.clone()).run()?;

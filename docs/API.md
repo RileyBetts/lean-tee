@@ -64,7 +64,9 @@ Rust shared crypto: `lean_tee_receipt`. Guests: `lean_tee_compliance` + registry
 | `ReceiptMeta.secret_digest_hex` | Hex SHA-256 of `secret_inputs` when mode=local. |
 | `AcceptReceiptRequest.require_confidentiality` | If `local`, require matching meta + digest. |
 | `TeeReceipt.result_hash` | Suite-domain length-prefixed hash over measurement + I/O + nonce |
-| `AcceptReceiptRequest.proof_ok` | Hint only for non-mock proofs; Verify re-checks mock locally and requires host-verified SP1 for v2. |
+| `ProveRequest.rules` | Raw config bytes for compliance (must match `config_hash` when non-empty). Empty for GuestProg. |
+| `ProveResponse.crypto_suite` | Suite the prover used (`sha256+mock` or `sha256+sp1`). Copied into the receipt. |
+| `AcceptReceiptRequest.proof_ok` | For `sha256+mock`: ignored if mock digest matches. For `sha256+sp1`: only honored when `LEAN_TEE_TRUST_PROOF_OK=1`; otherwise Accept requires a receipt previously issued by this teeServer after host-verified Prove. |
 | `AcceptReceiptRequest.policy_*` | Optional measurement allow-list entry; combined with server `LEAN_TEE_POLICY_FILE` |
 
 ## Guest model / rules

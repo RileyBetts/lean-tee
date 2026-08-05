@@ -123,13 +123,18 @@ def main : IO Unit := do
       pure (LeanTee.Services.handleMeasure req ctrl.maxProgramBytes)
     s := LeanTee.Grpc.registerTeeLoadProgram s (LeanTee.Services.handleLoadProgram progStore ctrl)
     s := LeanTee.Grpc.registerTeeGetProgram s (LeanTee.Services.handleGetProgram progStore)
-    s := LeanTee.Grpc.registerVerifyAccept s (LeanTee.Services.handleAccept policy ctrl trustProofOk)
+    s := LeanTee.Grpc.registerVerifyAccept s
+      (LeanTee.Services.handleAccept store policy ctrl trustProofOk)
     s := LeanTee.Grpc.registerAnchorSinkSubmit s (LeanTee.Services.handleSubmit sink)
     IO.println s!"lean-tee server 127.0.0.1:{port.toNat} (Prove → {host}:{p.toNat})"
     Grpc.Server.serveH2c s { host := "127.0.0.1", port }
   | none =>
     if ctrl.defaultProfile == "lean-tee-v2" then
-      IO.println "WARN: lean-tee-v2 without LEAN_TEE_PROVE_ADDR uses in-process mock Prove — wire SP1 prove_server for production"
+      let allowMock := (← IO.getEnv "LEAN_TEE_ALLOW_MOCK_V2") == some "1"
+      if !allowMock then
+        throw (IO.userError
+          "lean-tee-v2 requires LEAN_TEE_PROVE_ADDR (SP1 prove_server). For mock demos set LEAN_TEE_DEFAULT_PROFILE=lean-tee-v1 or LEAN_TEE_ALLOW_MOCK_V2=1")
+      IO.println "WARN: lean-tee-v2 with LEAN_TEE_ALLOW_MOCK_V2=1 — in-process mock Prove (not production)"
     let s := LeanTee.Services.mkIntegratedServer store progStore sink policy ctrl trustProofOk true
     IO.println s!"lean-tee server 127.0.0.1:{port.toNat} (in-process Prove)"
     Grpc.Server.serveH2c s { host := "127.0.0.1", port }

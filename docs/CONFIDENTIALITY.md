@@ -2,7 +2,7 @@
 
 **Not Nitro. Not a hardware TEE.** Optional `LEAN_TEE_CONFIDENTIALITY=local` keeps secret bytes out of receipts, logs, and `PublicIO` via a **local sealed worker** process.
 
-Default lean-tee remains **integrity-only** (`lean-tee-v2`). Confidentiality is opt-in.
+**Incompatible with `lean-tee-v2` / SP1:** the measured guest cannot see `secret_inputs`, so Execute rejects secrets when the profile is v2. Use **`LEAN_TEE_DEFAULT_PROFILE=lean-tee-v1`** (mock prove). Receipts from this path always use `sha256+mock`.
 
 ## Sealed vs public
 

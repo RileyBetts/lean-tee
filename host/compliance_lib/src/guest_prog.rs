@@ -181,23 +181,52 @@ pub fn run_bytes(program: &[u8], inputs: &[u8]) -> Result<Vec<u8>, String> {
     Ok(run(&p, inputs))
 }
 
-/// Unified guest entry used by SP1: optional program bytes.
-/// Empty program => legacy compliance using `config_hash` as rules hash only
-/// (rules body not available in zkVM — use default allow list).
+/// Unified guest entry matching the SP1 Lean guest ABI (host twin).
+///
+/// * Non-empty `program` → GuestProg; requires `code_hash` = guest_prog_runtime
+///   and `config_hash = SHA256(program)`.
+/// * Empty `program` → resolve builtin guest by `code_hash`; optional `rules`
+///   must hash to `config_hash` when non-empty.
 pub fn run_measured(
+    code_hash: &[u8],
     config_hash: &[u8; 32],
     inputs: &[u8],
     program: &[u8],
+    rules: &[u8],
 ) -> Result<Vec<u8>, String> {
-    if program.is_empty() {
-        Ok(crate::run_compliance(config_hash, inputs))
-    } else {
+    use crate::{code_hash_for, resolve_guest_by_code_hash, run_guest, GUEST_PROG_RUNTIME};
+    use lean_tee_receipt::CryptoSuite;
+
+    let suite = CryptoSuite::Sha256Mock;
+    if !program.is_empty() {
+        let expect_code = code_hash_for(&GUEST_PROG_RUNTIME, suite);
+        if code_hash != expect_code.as_slice() {
+            return Err("guest prog: code_hash != guest_prog_runtime".into());
+        }
         let expect = sha256(program);
         if expect != *config_hash {
             return Err("guest prog: config_hash != SHA256(program)".into());
         }
-        run_bytes(program, inputs)
+        return run_bytes(program, inputs);
     }
+    let g = resolve_guest_by_code_hash(code_hash, suite)
+        .ok_or_else(|| "unknown code_hash".to_string())?;
+    if g.guest_id == GUEST_PROG_RUNTIME.guest_id {
+        return Err("guest_prog_runtime requires non-empty program".into());
+    }
+    if !rules.is_empty() {
+        let rh = sha256(rules);
+        if rh != *config_hash {
+            return Err("rules: SHA256(rules) != config_hash".into());
+        }
+    }
+    Ok(run_guest(
+        g,
+        config_hash,
+        inputs,
+        if rules.is_empty() { None } else { Some(rules) },
+        suite,
+    ))
 }
 
 #[cfg(test)]

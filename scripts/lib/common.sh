@@ -8,13 +8,21 @@ demo_root() {
   ROOT="$(cd "$(dirname "${BASH_SOURCE[1]}")/.." && pwd)"
   export ROOT
   cd "$ROOT"
+  # Mock demos: do not require SP1 prove_server (production default is lean-tee-v2).
+  export LEAN_TEE_DEFAULT_PROFILE="${LEAN_TEE_DEFAULT_PROFILE:-lean-tee-v1}"
 }
 
 require_lean_grpc() {
-  if [[ ! -d "$ROOT/../lean-grpc" ]]; then
-    echo "missing sibling ../lean-grpc (pin v1.0.0)" >&2
-    exit 1
+  if [[ -d "$ROOT/.lake/packages/lean-grpc" || -d "$ROOT/../lean-grpc" ]]; then
+    return 0
   fi
+  if command -v lake >/dev/null 2>&1; then
+    echo "fetching lean-grpc via lake update…" >&2
+    (cd "$ROOT" && lake update)
+    return 0
+  fi
+  echo "missing lean-grpc; run: lake update  (or clone ../lean-grpc @ v1.0.0)" >&2
+  exit 1
 }
 
 export_pythonpath() {

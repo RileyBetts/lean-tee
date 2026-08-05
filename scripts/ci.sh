@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-lake build
+lake update
 lake build receiptTests teeServer teeLoopback proveMockServer rustProveLoopback
 ./.lake/build/bin/receiptTests
 ./.lake/build/bin/teeLoopback

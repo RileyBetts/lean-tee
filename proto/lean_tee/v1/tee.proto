@@ -77,11 +77,16 @@ message ProveRequest {
   Measurement measurement = 1;
   bytes inputs = 2;
   bytes program = 3;
+  // Raw rules/config bytes for compliance path (SHA256 must equal measurement.config_hash).
+  // Empty when GuestProg mode or when only the hash is known.
+  bytes rules = 4;
 }
 
 message ProveResponse {
   bytes outputs = 1;
   bytes proof_ref = 2;
+  // Empty => sha256+mock. prove_server sets sha256+sp1 after host-verified SP1 prove.
+  string crypto_suite = 3;
 }
 
 message AcceptReceiptRequest {

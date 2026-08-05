@@ -3,14 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Standalone mock gate: teeServer + teeClient + forged Accept reject via Python.
-# No Anchor, no SP1 required. Expects sibling ../lean-grpc (v1.0.0).
+# No Anchor, no SP1 required. Requires lake update (lean-grpc git dep).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if [[ ! -d "$ROOT/../lean-grpc" ]]; then
-  echo "missing sibling ../lean-grpc (pin v1.0.0)" >&2
-  exit 1
+if [[ ! -d "$ROOT/.lake/packages/lean-grpc" && ! -d "$ROOT/../lean-grpc" ]]; then
+  lake update
 fi
 
 lake build receiptTests teeServer teeClient goldenVectors
@@ -23,7 +22,8 @@ LOG="$(mktemp)"
 cleanup() { kill "${PID:-}" 2>/dev/null || true; }
 trap cleanup EXIT
 
-LEAN_TEE_PORT="$PORT" ./.lake/build/bin/teeServer >>"$LOG" 2>&1 &
+LEAN_TEE_PORT="$PORT" LEAN_TEE_DEFAULT_PROFILE=lean-tee-v1 \
+  ./.lake/build/bin/teeServer >>"$LOG" 2>&1 &
 PID=$!
 sleep 0.8
 

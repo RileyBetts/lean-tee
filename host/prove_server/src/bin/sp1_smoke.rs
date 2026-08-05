@@ -12,8 +12,10 @@
 //! SP1_PROVER=cpu ./target/release/sp1_smoke --print-digests --write-digests ../../artifacts/sp1_guest_digests.json
 //! ```
 
-use lean_tee_compliance::{code_hash, run_measured};
-use lean_tee_receipt::sha256;
+use lean_tee_compliance::{
+    code_hash, code_hash_for, run_measured, COMPLIANCE, GUEST_PROG_RUNTIME, VOTING,
+};
+use lean_tee_receipt::{sha256, CryptoSuite};
 use sha2::{Digest, Sha256};
 use sp1_sdk::{
     blocking::{ProveRequest, Prover, ProverClient},
@@ -27,6 +29,8 @@ const SP1_CRATE_VERSION: &str = "6.3.1";
 
 struct Case {
     label: &'static str,
+    /// Builtin guest code hash (compliance / voting / guest_prog_runtime).
+    code: [u8; 32],
     /// Rules body for compliance; ignored when `program` is non-empty.
     rules: &'static [u8],
     inputs: &'static [u8],
@@ -100,33 +104,51 @@ fn main() {
     // Digests alone (no execute / prove): setup + print/write, then exit.
     let digests_only = digests_requested && !execute_only && prove_one.is_none();
 
+    let suite = CryptoSuite::Sha256Mock;
+    let compliance_code = code_hash_for(&COMPLIANCE, suite);
+    let voting_code = code_hash_for(&VOTING, suite);
+    let prog_code = code_hash_for(&GUEST_PROG_RUNTIME, suite);
+
     let v1 = b"lean-tee-guest-prog/v1\nname=demo-votes\nallow=vote.yes,vote.no\n";
     let v2 = b"lean-tee-guest-prog/v2\nname=demo-v2\nallow=vote.yes\ndeny=vote.admin\nrequire_interaction=true\nmax_input_bytes=128\n";
+    let allow_rules = b"allow=vote.yes,vote.no\n";
 
     let cases: &[Case] = &[
         Case {
             label: "compliance-allow-yes",
-            rules: b"rules=vote.yes,vote.no",
+            code: compliance_code,
+            rules: allow_rules,
             inputs: b"action=vote.yes\n",
             program: b"",
             expect_decision: "allow",
         },
         Case {
             label: "compliance-allow-no",
-            rules: b"rules=vote.yes,vote.no",
+            code: compliance_code,
+            rules: allow_rules,
             inputs: b"action=vote.no\n",
             program: b"",
             expect_decision: "allow",
         },
         Case {
             label: "compliance-deny",
-            rules: b"rules=vote.yes,vote.no",
+            code: compliance_code,
+            rules: allow_rules,
             inputs: b"action=transfer.funds\n",
             program: b"",
             expect_decision: "deny",
         },
         Case {
+            label: "voting-deny-trade",
+            code: voting_code,
+            rules: b"",
+            inputs: b"action=trade.submit\n",
+            program: b"",
+            expect_decision: "deny",
+        },
+        Case {
             label: "guestprog-v1-allow",
+            code: prog_code,
             rules: b"",
             inputs: b"action=vote.yes\n",
             program: v1,
@@ -134,6 +156,7 @@ fn main() {
         },
         Case {
             label: "guestprog-v1-deny",
+            code: prog_code,
             rules: b"",
             inputs: b"action=trade.submit\n",
             program: v1,
@@ -141,6 +164,7 @@ fn main() {
         },
         Case {
             label: "guestprog-v2-allow",
+            code: prog_code,
             rules: b"",
             inputs: b"action=vote.yes\ninteraction=cli\n",
             program: v2,
@@ -189,11 +213,15 @@ fn main() {
     for i in indices {
         let c = &cases[i];
         let config_hash = if c.program.is_empty() {
-            sha256(c.rules)
+            if c.rules.is_empty() {
+                sha256(b"")
+            } else {
+                sha256(c.rules)
+            }
         } else {
             sha256(c.program)
         };
-        let expected = run_measured(&config_hash, c.inputs, c.program)
+        let expected = run_measured(&c.code, &config_hash, c.inputs, c.program, c.rules)
             .unwrap_or_else(|e| panic!("native run_measured {}: {e}", c.label));
         assert!(
             std::str::from_utf8(&expected)
@@ -204,9 +232,11 @@ fn main() {
         );
 
         let mut stdin = SP1Stdin::new();
+        stdin.write(&c.code);
         stdin.write(&config_hash);
         stdin.write(&c.inputs.to_vec());
         stdin.write(&c.program.to_vec());
+        stdin.write(&c.rules.to_vec());
 
         let (pv, report) = client
             .execute(ELF, stdin.clone())

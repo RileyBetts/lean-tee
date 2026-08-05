@@ -81,11 +81,23 @@ SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0   # gated; OOM-safe
 
 Mock prove+verify of case 0 (compliance-allow-yes) OK via `SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0`.
 
+### SP1 guest public ABI
+
+Stdin order (must match `host/guest_lean` + `prove_server`):
+
+1. `code_hash` (32) — selects builtin guest surface or `guest_prog_runtime`
+2. `config_hash` (32)
+3. `inputs`
+4. `program` (empty ⇒ compliance path)
+5. `rules` (raw config; when non-empty, `SHA256(rules)` must equal `config_hash`)
+
+Unknown `code_hash` or hash mismatch → `decision=deny` / `guest_error`.
+
 ### Measurement note
 
-`codeHash = SHA256(code_id)` identifies the **logical** operator (`compliance_operator`, `guest_prog_runtime`, …). The **executable** identity for SP1 is the proving key / ELF (`lean_tee_guest_lean`).
+`codeHash = SHA256(code_id)` identifies the **logical** operator and is **enforced inside the SP1 guest**. The **executable** identity is still the proving key / ELF (`lean_tee_guest_lean`).
 
-Wire `Measurement` is **not** extended: counterparties pin the executable via published digests:
+Wire `Measurement` is **not** extended with ELF/vk: counterparties pin the executable via published digests:
 
 | Field | Meaning |
 | --- | --- |

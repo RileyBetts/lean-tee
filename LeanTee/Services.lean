@@ -34,6 +34,17 @@ def JobStore.get? (self : JobStore) (id : String) : IO (Option TeeReceipt) := do
   let m ← self.jobs.get
   return m[id]?
 
+/-- Find a receipt previously issued by this server (host-verified SP1 Accept path). -/
+def JobStore.findIssued? (self : JobStore) (r : TeeReceipt) : IO Bool := do
+  let m ← self.jobs.get
+  return m.fold (init := false) fun acc _ stored =>
+    acc ||
+      (Hash.bytesEq stored.resultHash r.resultHash
+        && Hash.bytesEq stored.proofRef r.proofRef
+        && Measurement.beq stored.measurement r.measurement
+        && Hash.bytesEq stored.publicIO.inputs r.publicIO.inputs
+        && Hash.bytesEq stored.publicIO.outputs r.publicIO.outputs)
+
 /-- In-memory store for Lean-specified GuestProg payloads (program_id → bytes). -/
 structure ProgramStore where
   programs : IO.Ref (Std.HashMap String ByteArray)
@@ -132,13 +143,16 @@ def proveLocal (g : Guests.GuestDesc) (rulesRaw : ByteArray) (req : ProveRequest
     else
       Guests.runGuest g req.measurement.configHash rulesRaw req.inputs
   let proof := Guest.mockProof req.measurement req.inputs outputs
-  { outputs, proofRef := proof }
+  { outputs, proofRef := proof, cryptoSuite := suiteSha256Mock }
 
 def verifyMockProofOk (r : TeeReceipt) : Bool :=
   Guest.verifyMockProof r.measurement r.publicIO.inputs r.publicIO.outputs r.proofRef
 
 def buildReceipt (m : Measurement) (inputs outputs nonce proofRef : ByteArray)
-    (confidentiality secretDigestHex : String := "") : TeeReceipt :=
+    (cryptoSuite confidentiality secretDigestHex : String := "") : TeeReceipt :=
+  let suite :=
+    let t := Guest.trimStr cryptoSuite
+    if t.isEmpty then suiteSha256Mock else t
   let io : PublicIO := { inputs, outputs }
   TeeReceipt.withComputedHash {
     measurement := m
@@ -150,7 +164,7 @@ def buildReceipt (m : Measurement) (inputs outputs nonce proofRef : ByteArray)
       version := "v1"
       domain := "lean-tee/v1"
       sinkId := "lean-tee"
-      cryptoSuite := suiteSha256Mock
+      cryptoSuite := suite
       confidentiality
       secretDigestHex
     }
@@ -230,6 +244,9 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
   | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.unauthenticated e)
   | .ok () => pure ()
   if !req.secretInputs.isEmpty then
+    if ctrl.defaultProfile == "lean-tee-v2" then
+      return ({ jobId := "", status := "error:confidentiality=local incompatible with lean-tee-v2 (SP1 guest cannot see secrets); use lean-tee-v1" },
+        Grpc.Status.invalidArgument "confidentiality vs v2")
     match ctrl.confidentiality with
     | .off =>
       return ({ jobId := "", status := "error:secret_inputs require LEAN_TEE_CONFIDENTIALITY=local" },
@@ -241,7 +258,8 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
   let prog? ← match ← resolveProgramBytes progStore req with
     | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.invalidArgument e)
     | .ok p => pure p
-  let (g, m, programBytes) ← match prog? with
+  -- (guest, measurement, programBytes, rulesForProve)
+  let (g, m, programBytes, rulesForProve) ← match prog? with
     | some prog =>
       if prog.size > ctrl.maxProgramBytes then
         return ({ jobId := "", status := s!"error:program exceeds max_program_bytes={ctrl.maxProgramBytes}" },
@@ -254,7 +272,7 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
           codeHash := GuestProg.runtimeCodeHash
           configHash := Hash.sha256 prog
         }
-        pure (g, m, prog)
+        pure (g, m, prog, ByteArray.empty)
     | none =>
       let g ← match resolveGuest req.guestId with
         | .error e => return ({ jobId := "", status := s!"error:{e}" }, Grpc.Status.invalidArgument e)
@@ -263,7 +281,7 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
         if !req.secretInputs.isEmpty && req.configHash.isEmpty then req.secretInputs
         else req.configHash
       let m : Measurement := { codeHash := g.codeHash, configHash := Hash.sha256 configPreimage }
-      pure (g, m, ByteArray.empty)
+      pure (g, m, ByteArray.empty, configPreimage)
   if !Control.aclAllows ctrl.acl ctrl.tenant g.guestId then
     return ({ jobId := "", status := s!"error:forbidden guest_id={g.guestId}" }, Grpc.Status.permissionDenied "acl")
   match ← Control.checkQuota ctrl.quotas ctrl.maxRps ctrl.maxInflight with
@@ -279,10 +297,11 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
           measurement := m
           inputs := req.inputs
           program := programBytes
+          rules := rulesForProve
         }
         match prove? with
         | none =>
-          pure (.ok (req.inputs, proveLocal g req.configHash proveReq, "", ""))
+          pure (.ok (req.inputs, proveLocal g rulesForProve proveReq, "", ""))
         | some stub =>
           match ← stub.Prove proveReq with
           | .error e => pure (.error e)
@@ -302,7 +321,11 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
               let digHex := Guest.hexEncode sealed.secretDigest
               let publicInputs := Confidential.publicInputsWithDigest req.inputs digHex
               let proof := Guest.mockProof m publicInputs sealed.outputs
-              let proveResp : ProveResponse := { outputs := sealed.outputs, proofRef := proof }
+              let proveResp : ProveResponse := {
+                outputs := sealed.outputs
+                proofRef := proof
+                cryptoSuite := suiteSha256Mock
+              }
               pure (.ok (publicInputs, proveResp, "local", digHex))
     match sealedOrProve with
     | .error e =>
@@ -311,7 +334,11 @@ def handleExecute (store : JobStore) (progStore : ProgramStore) (ctrl : ServerCo
       let nonce :=
         if req.nonce.isEmpty then Hash.sha256 (Hash.concatLenPrefixed #[publicInputs, m.configHash])
         else req.nonce
-      let receipt := buildReceipt m publicInputs proveResp.outputs nonce proveResp.proofRef confMeta digHex
+      let suite :=
+        let t := Guest.trimStr proveResp.cryptoSuite
+        if t.isEmpty then suiteSha256Mock else t
+      let receipt := buildReceipt m publicInputs proveResp.outputs nonce proveResp.proofRef
+        suite confMeta digHex
       if !Confidential.outputsLookSafe receipt.publicIO.inputs req.secretInputs then
         return ({ jobId := "", status := "error:public inputs leaked secret" }, Grpc.Status.internal "secret leak")
       if !Confidential.outputsLookSafe receipt.publicIO.outputs req.secretInputs then
@@ -348,8 +375,9 @@ def handleGetReceipt (store : JobStore) (ctrl : ServerControl) (req : GetReceipt
         return ({ jobId := req.jobId, status := "pending" }, Grpc.Status.ok)
     | none => return ({ jobId := req.jobId, status := "pending" }, Grpc.Status.ok)
 
-def handleAccept (policy : ServerPolicy) (ctrl : ServerControl) (trustProofOk : Bool)
-    (req : AcceptReceiptRequest) : IO (AcceptReceiptResponse × Grpc.Status) := do
+def handleAccept (store : JobStore) (policy : ServerPolicy) (ctrl : ServerControl)
+    (trustProofOk : Bool) (req : AcceptReceiptRequest) :
+    IO (AcceptReceiptResponse × Grpc.Status) := do
   match Control.checkApiKey ctrl.apiKey ctrl.presentedKey with
   | .error e => return ({ accepted := false, reason := e }, Grpc.Status.unauthenticated e)
   | .ok () => pure ()
@@ -362,32 +390,46 @@ def handleAccept (policy : ServerPolicy) (ctrl : ServerControl) (trustProofOk : 
               }, Grpc.Status.ok)
     if confReq == "local" && req.receipt.receiptMeta.secretDigestHex.isEmpty then
       return ({ accepted := false, reason := "require_confidentiality=local needs secret_digest_hex" }, Grpc.Status.ok)
-  let resp :=
-    if !leanHostSupportsSuite suite then
-      ({ accepted := false
-         reason := s!"unsupported crypto_suite={suite} (Lean host; use lean_tee_receipt for blake3+mock)"
-       } : AcceptReceiptResponse)
+  if !leanHostSupportsSuite suite then
+    return ({ accepted := false
+              reason := s!"unsupported crypto_suite={suite} (Lean host; use lean_tee_receipt for blake3+mock)"
+            }, Grpc.Status.ok)
+  let reqPolicy : MeasurementPolicy := {
+    allowed := #[{ codeHash := req.policyCodeHash, configHash := req.policyConfigHash }]
+  }
+  let measurementOk :=
+    (req.policyCodeHash.isEmpty && req.policyConfigHash.isEmpty && policy.allows req.receipt.measurement)
+    || reqPolicy.allows req.receipt.measurement
+    || (policy.entries.isEmpty && !req.policyCodeHash.isEmpty && reqPolicy.allows req.receipt.measurement)
+  if !measurementOk then
+    let resp := { accepted := false, reason := "measurement not in policy" }
+    Control.Metrics.bumpAccept ctrl.metrics false
+    return (resp, Grpc.Status.ok)
+  if !req.receipt.hashMatches then
+    let resp := { accepted := false, reason := "resultHash mismatch" }
+    Control.Metrics.bumpAccept ctrl.metrics false
+    return (resp, Grpc.Status.ok)
+  let mockOk := verifyMockProofOk req.receipt
+  let issued ← store.findIssued? req.receipt
+  let proofOk :=
+    if suite == suiteSha256Mock then
+      mockOk
+    else if suite == suiteSha256Sp1 then
+      -- SP1: accept receipts this host minted after prove_server host-verify, or opt-in trust.
+      if issued then true
+      else if trustProofOk then req.proofOk
+      else false
     else
-      let reqPolicy : MeasurementPolicy := {
-        allowed := #[{ codeHash := req.policyCodeHash, configHash := req.policyConfigHash }]
-      }
-      let measurementOk :=
-        (req.policyCodeHash.isEmpty && req.policyConfigHash.isEmpty && policy.allows req.receipt.measurement)
-        || reqPolicy.allows req.receipt.measurement
-        || (policy.entries.isEmpty && !req.policyCodeHash.isEmpty && reqPolicy.allows req.receipt.measurement)
-      let mockOk := verifyMockProofOk req.receipt
-      let proofOk :=
-        if mockOk then true
-        else if trustProofOk then req.proofOk
-        else false
-      if !measurementOk then
-        { accepted := false, reason := "measurement not in policy" }
-      else if !req.receipt.hashMatches then
-        { accepted := false, reason := "resultHash mismatch" }
-      else if !proofOk then
-        { accepted := false, reason := "proof invalid" }
+      false
+  let resp : AcceptReceiptResponse :=
+    if !proofOk then
+      if suite == suiteSha256Sp1 && !issued && !trustProofOk then
+        { accepted := false
+          reason := "sp1 proof not verified by this host (Execute here first, or LEAN_TEE_TRUST_PROOF_OK=1 after external verify)" }
       else
-        { accepted := true, reason := "" }
+        { accepted := false, reason := "proof invalid" }
+    else
+      { accepted := true, reason := "" }
   Control.Metrics.bumpAccept ctrl.metrics resp.accepted
   if let some path := ctrl.auditPath then
     Control.auditLine path s!"\{ \"event\":\"accept\", \"accepted\":{resp.accepted}, \"reason\":\"{resp.reason}\", \"tenant\":\"{ctrl.tenant}\", \"result_hash_hex\":\"{Guest.hexEncode req.receipt.resultHash}\" }"
@@ -405,7 +447,7 @@ def handleProve (req : ProveRequest) : ProveResponse × Grpc.Status :=
     match Guests.builtin.find? (fun x => Hash.bytesEq x.codeHash req.measurement.codeHash) with
     | some g => g
     | none => Guests.compliance
-  (proveLocal g ByteArray.empty req, Grpc.Status.ok)
+  (proveLocal g req.rules req, Grpc.Status.ok)
 
 def mkIntegratedServer (store : JobStore) (progStore : ProgramStore) (sink : SinkBackend)
     (policy : ServerPolicy) (ctrl : ServerControl) (trustProofOk : Bool)
@@ -417,7 +459,7 @@ def mkIntegratedServer (store : JobStore) (progStore : ProgramStore) (sink : Sin
     s := registerTeeMeasure s fun req => pure (handleMeasure req ctrl.maxProgramBytes)
     s := registerTeeLoadProgram s (handleLoadProgram progStore ctrl)
     s := registerTeeGetProgram s (handleGetProgram progStore)
-    s := registerVerifyAccept s (handleAccept policy ctrl trustProofOk)
+    s := registerVerifyAccept s (handleAccept store policy ctrl trustProofOk)
     s := registerAnchorSinkSubmit s (handleSubmit sink)
     if includeProve then
       s := registerProve s fun req => pure (handleProve req)

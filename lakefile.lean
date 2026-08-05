@@ -10,16 +10,12 @@ package «lean-tee» where
   version := v!"0.1.0"
   keywords := #["tee", "zkvm", "grpc", "compliance", "attestation"]
   description := "Lean-specified zkTEE: measured guest execution, hashed receipts, lean-grpc APIs"
+  license := "Apache-2.0"
+  licenseFiles := #["LICENSE", "NOTICE"]
 
-/--
-lean-grpc dependency.
-
-Pinned revision in CI / docs: **v1.0.0**.
-Default: sibling path `../lean-grpc` (clone or CI checkout at that ref).
-To force git: replace with
-  `require «lean-grpc» from git "https://github.com/RileyBetts/lean-grpc.git" @ "v1.0.0"`
--/
-require «lean-grpc» from ".." / "lean-grpc"
+/-- Pinned for CI, docs, and [Reservoir](https://reservoir.lean-lang.org/) reproducible builds. -/
+require «lean-grpc» from git
+  "https://github.com/RileyBetts/lean-grpc.git" @ "v1.0.0"
 
 target sha256_ffi.o pkg : FilePath := do
   let oFile := pkg.buildDir / "native" / "sha256_ffi.o"

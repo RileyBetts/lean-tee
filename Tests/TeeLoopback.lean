@@ -15,7 +15,10 @@ def main : IO Unit := do
   let serverPath := binDir / "teeServer"
   let child ← IO.Process.spawn {
     cmd := serverPath.toString
-    env := #[("LEAN_TEE_PORT", some (toString port.toNat))]
+    env := #[
+      ("LEAN_TEE_PORT", some (toString port.toNat)),
+      ("LEAN_TEE_DEFAULT_PROFILE", some "lean-tee-v1")
+    ]
   }
   try
     IO.sleep 600

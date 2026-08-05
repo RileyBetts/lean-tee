@@ -21,7 +21,8 @@ trap cleanup EXIT
 
 echo 'rules=v1' >"$RULES"
 
-LEAN_TEE_PORT="$PORT" ./.lake/build/bin/teeServer >>"$LOG" 2>&1 &
+LEAN_TEE_PORT="$PORT" LEAN_TEE_DEFAULT_PROFILE=lean-tee-v1 \
+  ./.lake/build/bin/teeServer >>"$LOG" 2>&1 &
 PID=$!
 wait_port 127.0.0.1 "$PORT"
 

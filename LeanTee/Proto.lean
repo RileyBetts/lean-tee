@@ -206,6 +206,8 @@ structure ProveRequest where
   measurement : LeanTee.Measurement := { codeHash := ByteArray.empty, configHash := ByteArray.empty }
   inputs : ByteArray := ByteArray.empty
   program : ByteArray := ByteArray.empty
+  /-- Raw rules/config bytes (compliance path). -/
+  rules : ByteArray := ByteArray.empty
   deriving Inhabited
 
 def ProveRequest.encode (m : ProveRequest) : ByteArray :=
@@ -214,6 +216,7 @@ def ProveRequest.encode (m : ProveRequest) : ByteArray :=
     acc := Proto.Wire.encodeMessage acc 1 (Measurement.encode m.measurement)
     if !m.inputs.isEmpty then acc := Proto.Wire.encodeBytes acc 2 m.inputs
     if !m.program.isEmpty then acc := Proto.Wire.encodeBytes acc 3 m.program
+    if !m.rules.isEmpty then acc := Proto.Wire.encodeBytes acc 4 m.rules
     return acc
 
 def ProveRequest.decode (b : ByteArray) : Except String ProveRequest := do
@@ -224,11 +227,14 @@ def ProveRequest.decode (b : ByteArray) : Except String ProveRequest := do
     measurement
     inputs := (Proto.Wire.fieldBytes? fields 2).getD ByteArray.empty
     program := (Proto.Wire.fieldBytes? fields 3).getD ByteArray.empty
+    rules := (Proto.Wire.fieldBytes? fields 4).getD ByteArray.empty
   }
 
 structure ProveResponse where
   outputs : ByteArray := ByteArray.empty
   proofRef : ByteArray := ByteArray.empty
+  /-- Empty ⇒ sha256+mock; prove_server sets sha256+sp1 after host-verified SP1. -/
+  cryptoSuite : String := ""
   deriving Inhabited
 
 def ProveResponse.encode (m : ProveResponse) : ByteArray :=
@@ -236,6 +242,7 @@ def ProveResponse.encode (m : ProveResponse) : ByteArray :=
     let mut acc := ByteArray.empty
     if !m.outputs.isEmpty then acc := Proto.Wire.encodeBytes acc 1 m.outputs
     if !m.proofRef.isEmpty then acc := Proto.Wire.encodeBytes acc 2 m.proofRef
+    if !m.cryptoSuite.isEmpty then acc := Proto.Wire.encodeString acc 3 m.cryptoSuite
     return acc
 
 def ProveResponse.decode (b : ByteArray) : Except String ProveResponse := do
@@ -243,6 +250,7 @@ def ProveResponse.decode (b : ByteArray) : Except String ProveResponse := do
   return {
     outputs := (Proto.Wire.fieldBytes? fields 1).getD ByteArray.empty
     proofRef := (Proto.Wire.fieldBytes? fields 2).getD ByteArray.empty
+    cryptoSuite := (Proto.Wire.fieldString? fields 3).getD ""
   }
 
 structure AcceptReceiptRequest where
