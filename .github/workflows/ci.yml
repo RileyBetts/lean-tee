@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, development]
   pull_request:
 
 jobs:
@@ -10,17 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: lean-tee
       - name: Install deps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq libssl-dev pkg-config
-      - uses: leanprover/lean-action@v1
-        with:
-          build: false
+      # lean-action looked for lean-toolchain at workspace root while checkout used
+      # path: lean-tee (leftover sibling layout). Install elan against repo root instead.
+      - name: Install Lean 4.32.1 (elan)
+        run: |
+          set -euo pipefail
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf \
+            | sh -s -- -y --default-toolchain leanprover/lean4:v4.32.1
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/lean" --version
+          "$HOME/.elan/bin/lake" --version
       - name: Build + demos
-        working-directory: lean-tee
         run: |
           set -euo pipefail
           lake update

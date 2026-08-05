@@ -62,6 +62,9 @@ pub async fn execute_action_guest(
             inputs,
             nonce: Vec::new(),
             submit_to_sink: false,
+            program: Vec::new(),
+            program_id: String::new(),
+            secret_inputs: Vec::new(),
         })
         .await?
         .into_inner();
@@ -76,6 +79,8 @@ pub async fn measure(
     let resp = client
         .measure(MeasureRequest {
             config_hash: rules.to_vec(),
+            guest_id: Vec::new(),
+            program: Vec::new(),
         })
         .await?
         .into_inner();
@@ -92,6 +97,8 @@ pub async fn prove_mock(
         .prove(ProveRequest {
             measurement: Some(measurement),
             inputs,
+            program: Vec::new(),
+            rules: Vec::new(),
         })
         .await?
         .into_inner())
