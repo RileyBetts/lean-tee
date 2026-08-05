@@ -51,5 +51,5 @@ sp1-sdk = { version = "6.3.1", default-features = false, features = ["blocking"]
 
 [build-dependencies]
 protoc-bin-vendored = "3"
-tonic-build = "0.12"
+tonic-build = "0.14"
 sp1-build = { version = "6.3.1", optional = true }

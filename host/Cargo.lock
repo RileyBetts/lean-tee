@@ -1834,7 +1834,7 @@ dependencies = [
  "sp1-sdk",
  "tokio",
  "tonic",
- "tonic-build",
+ "tonic-build 0.14.6",
  "tracing",
  "tracing-subscriber",
 ]
@@ -4329,7 +4329,7 @@ dependencies = [
  "sp1-primitives",
  "tokio",
  "tonic",
- "tonic-build",
+ "tonic-build 0.12.3",
  "tracing",
 ]
 
@@ -5025,6 +5025,18 @@ dependencies = [
  "proc-macro2",
  "prost-build",
  "prost-types",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "tonic-build"
+version = "0.14.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c68f61875ac5293cf72e6c8cf0158086428c82c37229e98c840878f1706b0322"
+dependencies = [
+ "prettyplease",
+ "proc-macro2",
  "quote",
  "syn 2.0.119",
 ]
