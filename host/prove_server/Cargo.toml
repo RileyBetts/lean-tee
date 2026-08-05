@@ -39,7 +39,7 @@ lean_tee_compliance = { path = "../compliance_lib" }
 lean_tee_receipt = { path = "../receipt" }
 bytes = "1"
 hex = "0.4"
-prost = "0.13"
+prost = "0.14"
 sha2 = "0.10"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal"] }
 tonic = { version = "0.12", features = ["transport"] }
