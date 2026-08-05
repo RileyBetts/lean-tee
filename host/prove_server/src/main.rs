@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! `lean_tee.v1.Prove` — mock by default; SP1 with `--features sp1`.
 //!
 //! Env:

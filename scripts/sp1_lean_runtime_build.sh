@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Attempt to compile Lean 4.32.1 runtime cores for SP1.
 # Exit non-zero until LEAN_SP1 stubs land; prints a clear status summary.
 set -euo pipefail

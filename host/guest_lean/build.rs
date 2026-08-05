@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;

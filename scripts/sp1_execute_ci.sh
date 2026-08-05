@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # CI / nightly: SP1 RISC-V execute-only (no CPU prove — avoids OOM on small runners).
 # Measured guest is Lean-compiled (`lean_tee_guest_lean`).
 set -euo pipefail

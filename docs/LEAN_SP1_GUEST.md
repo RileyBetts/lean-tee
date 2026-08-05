@@ -8,6 +8,22 @@ SP1 is retained for the Lean-oriented prover formalization track (`sp1-lean`).
 Plan: see [lean-sp1-guest-plan.html](lean-sp1-guest-plan.html).  
 Plain-English how the proof works: [sp1-integrity-crib-sheet.html](sp1-integrity-crib-sheet.html).
 
+## Ownership (what this repo contributes vs SP1)
+
+**lean-tee owns** the measured Lean guest program and the glue that runs it on SP1:
+
+| Area | Ours |
+| --- | --- |
+| Guest logic | `GuestSp1` / `GuestProg` / compliance + portable SHA → C → RISC-V |
+| Guest crate | `host/guest_lean/` (thin I/O shell linking Lean archives) |
+| Lean→SP1 runtime | Fetch/patch/build (`sp1_lean_runtime_*.sh`, `sp1_lean_runtime_patch.py`), overlays in `host/lean_sp1_runtime/`, minimal Init + [Init RFC](LEAN_SP1_INIT_RFC.md) |
+| Host prove path | `prove_server`, `sp1_smoke`, digests (`artifacts/sp1_guest_digests.json`), gated CI |
+| Docs | This guide, crib sheet, plan HTML |
+
+**Succinct / SP1 owns** the zkVM, prover math, SDK (`sp1-sdk` / `sp1-zkvm` / `sp1-build` **6.3.1**), and `sp1up` RISC-V toolchain. We consume those; we do not ship prover chips or relicense SP1.
+
+Upstream SP1 is **MIT OR Apache-2.0**. lean-tee first-party code is **Apache-2.0** only (compatible with SP1’s Apache option). See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+
 ## Phase 0 (landed spike)
 
 | Piece | Path |

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Staged SP1 tests — avoids proving three cases back-to-back (OOM risk on 16GB).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

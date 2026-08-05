@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! Size-prefixed malloc/free backed by SP1's global allocator (embedded TLSF).
 //! Overrides newlib when this crate is linked ahead of `-lc`.
 

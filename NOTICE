@@ -1,0 +1,35 @@
+lean-tee
+Copyright © 2026, Riley Betts Ltd (rileybetts.ai)
+
+This product includes software developed for lean-tee
+(https://github.com/RileyBetts/lean-tee).
+
+Licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+---------------------------------------------------------------------------
+Third-party / dependency notes
+
+SP1 (Succinct Labs)
+  Used as an optional dependency for lean-tee-v2 prove/verify
+  (sp1-sdk / sp1-zkvm / sp1-build and related crates).
+  Upstream license: MIT OR Apache-2.0
+  (https://github.com/succinctlabs/sp1).
+  lean-tee itself is Apache-2.0 only; that is compatible with SP1's
+  Apache-2.0 option. lean-tee does not relicense or redistribute the
+  SP1 prover sources as first-party code.
+
+Lean (leanprover/lean4)
+  Stock Lean 4.32.1 runtime sources are fetched and patched for the
+  SP1 guest build (see scripts/sp1_lean_runtime_*.sh and
+  scripts/sp1_lean_runtime_patch.py). Lean is Apache-2.0.
+  Our LEAN_SP1 patches, overlays, and guest glue are Apache-2.0
+  (Riley Betts Ltd).
+
+lean-grpc
+  Sibling dependency (https://github.com/RileyBetts/lean-grpc),
+  Apache-2.0.
+
+OpenSSL
+  Optional host FFI for SHA-256 (native/sha256_ffi.c). OpenSSL has its
+  own license; not bundled in this repository.

@@ -1,3 +1,6 @@
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 #!/usr/bin/env python3
 """Cross-impl golden: verify testdata goldens with the Python twin."""
 

@@ -1,3 +1,6 @@
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Shared helpers for lean-tee demo scripts. Source from repo scripts/*.sh
 # shellcheck shell=bash
 

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Enterprise control plane smoke: ACL + audit + job dir + metrics.
 set -euo pipefail
 # shellcheck source=lib/common.sh

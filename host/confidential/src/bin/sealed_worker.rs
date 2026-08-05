@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! Local sealed worker — optional `LEAN_TEE_CONFIDENTIALITY=local`.
 //!
 //! Hardens against weaker agents (no core dumps, non-dumpable, no secret logs).

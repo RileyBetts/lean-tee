@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! SP1 RISC-V guest: compliance path + Lean-specified GuestProg runtime.
 #![no_main]
 sp1_zkvm::entrypoint!(main);

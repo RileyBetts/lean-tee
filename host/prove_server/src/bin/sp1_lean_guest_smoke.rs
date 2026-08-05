@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! Phase-1: execute Lean-compiled GuestSp1 compliance path inside SP1 (execute-only).
 //!
 //! ```bash

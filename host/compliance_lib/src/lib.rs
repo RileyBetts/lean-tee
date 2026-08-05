@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! Multi-guest compliance operators — aligned with `LeanTee.Guests`.
 //! Receipt crypto lives in `lean_tee_receipt`.
 

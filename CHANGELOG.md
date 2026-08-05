@@ -7,6 +7,7 @@
 - Publish `elf_sha256` / `vk_*` for `lean_tee_guest_lean` via `sp1_smoke --print-digests` / `scripts/sp1_guest_digest.sh` → `artifacts/sp1_guest_digests.json` (CI artifact on `sp1-execute`).
 - Anchor Strict / multi-guest docs: counterparties pin digests; wire `Measurement` unchanged (`codeHash`+`configHash`).
 - Real CPU prove+verify of one Lean-ELF case gated by `workflow_dispatch` `prove_heavy` (+ `prove_one`). Local `SP1_PROVE_HEAVY=1` aborts unless ≥10 GiB `MemAvailable` or `SP1_PROVE_HEAVY_FORCE=1` (CPU prove can hard-lock 16 GiB laptops).
+- Docs: ownership split (lean-tee guest/glue vs upstream SP1) in `LEAN_SP1_GUEST.md` / README; full Apache-2.0 `LICENSE` + `NOTICE` (SP1 is MIT OR Apache-2.0; first-party code Apache-2.0).
 
 ### Phase 4b — Init allow-list RFC
 

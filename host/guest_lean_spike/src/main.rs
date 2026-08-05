@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! Phase-0 SP1 guest: call Lean-compiled UInt32 exports (C from Lean IR).
 //! Not the production compliance guest — spike only.
 #![no_main]

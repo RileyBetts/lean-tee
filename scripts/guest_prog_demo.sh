@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Load a Lean-specified GuestProg via gRPC and Execute on guest_prog_runtime.
 set -euo pipefail
 # shellcheck source=lib/common.sh

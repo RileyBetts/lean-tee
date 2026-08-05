@@ -1,3 +1,6 @@
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 #!/usr/bin/env python3
 """lean-tee Python SDK — local twin + live teeClient Execute / Accept helpers."""
 

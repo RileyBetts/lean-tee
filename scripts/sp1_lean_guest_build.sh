@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Emit/compile Init subset + GuestSp1 Lake C → .cache/lean-sp1-guest/libLeanTeeGuest.a
 # Links against .cache/lean-sp1-runtime/prefix/lib/libLean.a at the SP1 guest link step.
 #

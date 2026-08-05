@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! Phase-0: execute Lean-emitted UInt32 exports inside SP1 (no Rust twin semantics).
 //!
 //! ```bash

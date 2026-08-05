@@ -1,6 +1,6 @@
 /-
 Copyright © 2026, Riley Betts Ltd (rileybetts.ai)
-Released under Apache 2.0 license as described in the file LICENSE.
+SPDX-License-Identifier: Apache-2.0
 -/
 /-!
 # SP1 Lean guest spike (phase 0)

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Adversarial matrix: mutate receipt fields; assert reject reasons across Lean / Rust / Python.
 set -euo pipefail
 # shellcheck source=lib/common.sh

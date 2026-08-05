@@ -1,4 +1,9 @@
 /*
+ * Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
  * SP1 bisect for lean_obj_once_cold. Stages committed as little-endian u32:
  *   1 = runtime init done
  *   2 = direct string_to_utf8 size

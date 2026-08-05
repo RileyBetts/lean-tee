@@ -98,19 +98,25 @@ Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [CONFIDE
 | `host/compliance_lib` | Multi-guest operator logic |
 | `host/prove_server` | tonic Prove (mock and/or SP1) |
 | `host/guest_lean` | Measured SP1 guest ELF (Lean→C→RISC-V) |
+| `host/lean_sp1_runtime/` | Lean 4.32.1 runtime overlays / shims for SP1 |
+| `host/lean_sp1_init_min/` | Minimal Init for the Lean guest |
 | `host/guest` | Legacy Rust twin (optional differential) |
+| `artifacts/sp1_guest_digests.json` | Published ELF / verifying-key digests |
 | `clients/python` | Python Execute / AcceptReceipt SDK |
 | `clients/rust` | Thin tonic Tee + Prove client |
 | `config/guests/` | First-party guest registry |
 | `Tests/` | Receipt + guest registry + gRPC loopbacks |
-| `docs/` | Product, Nitro comparison, API, threat, CRYPTO, ENTERPRISE, SLA |
+| `docs/` | Product, Nitro, API, threat, SP1 guest guide / crib sheet |
+| `scripts/sp1_*.sh` | SP1 runtime/guest build, CI smoke, digests |
 | `scripts/*_demo.sh` | Standalone, adversarial, action, enterprise, golden, prove loopback |
+
+SP1 ownership split (Lean guest + glue vs upstream prover): [docs/LEAN_SP1_GUEST.md](docs/LEAN_SP1_GUEST.md#ownership-what-this-repo-contributes-vs-sp1).
 
 ## Dependencies
 
 - [lean-grpc](https://github.com/RileyBetts/lean-grpc) **v1.0.0** as sibling `../lean-grpc` (CI checks out that tag; see [docs/PRODUCT.md](docs/PRODUCT.md))
 - OpenSSL (`libssl-dev`, `pkg-config`)
-- Optional: SP1 toolchain (`sp1up`) for `lean-tee-v2` / `--features sp1`
+- Optional: [SP1](https://github.com/succinctlabs/sp1) toolchain (`sp1up`) for `lean-tee-v2` / `--features sp1` (upstream **MIT OR Apache-2.0**)
 
 ## Status
 
@@ -121,10 +127,13 @@ Docs: [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [CONFIDE
 - [x] Multi-guest registry (compliance / voting / onboarding / trade)
 - [x] Enterprise control plane (ACL, audit, quotas, job dir, mTLS docs)
 - [x] SP1 prove path + host verify (`lean-tee-v2`); production default + gated execute CI
+- [x] Lean-compiled measured guest + runtime port / FENCE patches + Init allow-list
 - [x] GuestProg v1/v2 + LoadProgram ACL / size limits
 - [x] Optional local confidentiality (`confidentiality=local` sealed worker; not Nitro)
 - [x] Anchor Chain Strict Mode consumer + multi-guest mapping docs
+- [x] Published ELF/vk digests + SP1 integrity crib sheet
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE).
+Apache-2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+First-party lean-tee code is Apache-2.0. Upstream SP1 is dual-licensed MIT OR Apache-2.0; we depend on it under its Apache-2.0 option.

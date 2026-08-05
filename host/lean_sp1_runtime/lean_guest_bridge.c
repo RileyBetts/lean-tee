@@ -1,4 +1,9 @@
 /*
+ * Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
  * Thin C bridge: host buffers ↔ Lean ByteArray ↔ lean_tee_guest_run.
  * Requires Lean runtime + Init + GuestSp1 objects linked into the SP1 guest.
  */

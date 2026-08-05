@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Sync LeanTee/Sp1Spike.lean IR into the phase-0 SP1 C stub (UInt32 exports only).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

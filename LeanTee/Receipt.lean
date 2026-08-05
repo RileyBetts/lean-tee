@@ -1,6 +1,6 @@
 /-
-Copyright (c) 2026, Riley Betts Ltd (rileybetts.ai)
-Released under Apache 2.0 license as described in the file LICENSE.
+Copyright © 2026, Riley Betts Ltd (rileybetts.ai)
+SPDX-License-Identifier: Apache-2.0
 -/
 import LeanTee.Hash
 import LeanTee.Measurement

@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 use lean_tee_receipt::*;
 
 fn expect_err(suite: &str, label: &str, code: &[u8], config: &[u8], inputs: &[u8], outputs: &[u8], nonce: &[u8], evidence: &[u8], proof: &[u8], want: &str) {

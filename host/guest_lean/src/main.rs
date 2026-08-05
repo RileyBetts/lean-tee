@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! Phase-1 SP1 guest: Lean-compiled compliance entry (`lean_tee_guest_run`).
 #![no_main]
 extern crate alloc;

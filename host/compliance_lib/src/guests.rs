@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! First-party guest registry (mirrors config/guests/registry.json + LeanTee.Guests).
 
 use lean_tee_receipt::{

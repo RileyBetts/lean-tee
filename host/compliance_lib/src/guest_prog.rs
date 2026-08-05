@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! Lean-specified GuestProg interpreter (mirrors `LeanTee.GuestProg`).
 //! Executed natively and inside the SP1 RISC-V `guest_prog_runtime`.
 

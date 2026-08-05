@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Publish ELF + verifying-key digests for the measured Lean SP1 guest.
 # Wire Measurement stays codeHash+configHash; these digests pin the executable.
 set -euo pipefail

@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* Generated-style Lean config for SP1 runtime builds (Lean 4.32.1). */
 #ifndef LEAN_CONFIG_H
 #define LEAN_CONFIG_H

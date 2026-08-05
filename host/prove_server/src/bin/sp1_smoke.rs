@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! SP1 smoke for the **measured** Lean guest (`lean_tee_guest_lean`).
 //!
 //! Covers compliance (empty program) and GuestProg (non-empty program).

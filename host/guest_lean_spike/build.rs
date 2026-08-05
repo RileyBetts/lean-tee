@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 fn main() {
     println!("cargo:rerun-if-changed=c/lean_sp1_spike.c");
     // SP1 guest C needs riscv64-unknown-elf-gcc (`sp1up --c-toolchain`).

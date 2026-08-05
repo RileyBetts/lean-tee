@@ -1,3 +1,6 @@
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 #!/usr/bin/env python3
 """Apply LEAN_SP1 stubs onto a Lean 4.32.1 src/runtime tree (Anoma LEAN_RISC0 pattern).
 

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Standalone mock gate: teeServer + teeClient + forged Accept reject via Python.
 # No Anchor, no SP1 required. Expects sibling ../lean-grpc (v1.0.0).
 set -euo pipefail

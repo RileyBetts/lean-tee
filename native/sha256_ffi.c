@@ -1,7 +1,8 @@
 /*
- * OpenSSL SHA-256 for Lean TeeReceipt hashing.
- * Copyright © 2026 Riley Betts Ltd — Apache-2.0
+ * Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+ * SPDX-License-Identifier: Apache-2.0
  */
+
 #include <lean/lean.h>
 #include <openssl/evp.h>
 #include <stdint.h>

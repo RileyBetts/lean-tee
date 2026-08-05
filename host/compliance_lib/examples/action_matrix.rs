@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 use lean_tee_compliance::{
     resolve_guest, run_guest, BUILTIN, COMPLIANCE, ONBOARDING, TRADE, VOTING,
 };

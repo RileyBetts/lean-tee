@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Fetch Lean 4.32.1 runtime sources (sparse) for SP1 porting.
 # Anoma's lean-risc0-runtime targets Lean 4.22 and does not match 4.32.1 headers.
 set -euo pipefail

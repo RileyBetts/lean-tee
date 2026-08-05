@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+# SPDX-License-Identifier: Apache-2.0
+
 # Cross-impl golden: Lean (sha256) + Rust (both suites) + Python twin.
 set -euo pipefail
 # shellcheck source=lib/common.sh

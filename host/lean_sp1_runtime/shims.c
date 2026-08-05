@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* SP1 guest shims for Lean runtime (adapted from Anoma risc0-lean-example). */
 #include <stddef.h>
 #include <stdint.h>

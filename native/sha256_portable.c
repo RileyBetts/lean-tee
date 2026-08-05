@@ -1,8 +1,9 @@
 /*
- * Portable SHA-256 for Lean ByteArray FFI (host + SP1 guest).
- * Same ABI as native/sha256_ffi.c (OpenSSL), without libcrypto.
- * Copyright © 2026 Riley Betts Ltd — Apache-2.0
+ * Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+ * SPDX-License-Identifier: Apache-2.0
  */
+
+/* Portable SHA-256 for Lean ByteArray FFI (host + SP1 guest); same ABI as sha256_ffi.c. */
 #include <lean/lean.h>
 #include <stdint.h>
 #include <string.h>

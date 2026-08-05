@@ -1,3 +1,6 @@
+// Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
+// SPDX-License-Identifier: Apache-2.0
+
 //! Phase-2: Lean GuestProg path inside SP1 (execute-only), vs Rust `run_measured`.
 use lean_tee_compliance::run_measured;
 use lean_tee_receipt::sha256;
