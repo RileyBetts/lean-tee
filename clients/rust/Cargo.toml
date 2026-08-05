@@ -9,7 +9,7 @@ description = "Thin tonic client for lean_tee.v1 Tee + Prove"
 lean_tee_receipt = { path = "../../host/receipt" }
 prost = "0.13"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-tonic = { version = "0.12", features = ["transport"] }
+tonic = { version = "0.14", features = ["transport"] }
 hex = "0.4"
 
 [build-dependencies]
