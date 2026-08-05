@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin lean-grpc dependency to **v1.1.0** (was v1.0.0)
+
 ## 1.0.1 — 2026-08-05
 
 Patch release: CI fixes + package metadata aligned to tag `v1.0.1`.

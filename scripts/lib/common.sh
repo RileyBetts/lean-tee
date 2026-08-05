@@ -21,7 +21,7 @@ require_lean_grpc() {
     (cd "$ROOT" && lake update)
     return 0
   fi
-  echo "missing lean-grpc; run: lake update  (or clone ../lean-grpc @ v1.0.0)" >&2
+  echo "missing lean-grpc; run: lake update  (or clone ../lean-grpc @ v1.1.0)" >&2
   exit 1
 }
 

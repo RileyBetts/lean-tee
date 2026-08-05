@@ -74,7 +74,7 @@ Optional **local** confidentiality (`LEAN_TEE_CONFIDENTIALITY=local`): secrets v
 
 ## lean-grpc pin
 
-`lakefile.lean` requires [lean-grpc **v1.0.0**](https://github.com/RileyBetts/lean-grpc/tree/v1.0.0) via git (`lake update`). A sibling `../lean-grpc` checkout is optional.
+`lakefile.lean` requires [lean-grpc **v1.1.0**](https://github.com/RileyBetts/lean-grpc/tree/v1.1.0) via git (`lake update`). A sibling `../lean-grpc` checkout is optional.
 
 ## Roadmap (integrity multi-guest)
 

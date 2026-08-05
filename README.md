@@ -44,7 +44,7 @@ Set `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` and wire `LEAN_TEE_PROVE_ADDR` to an 
 
 ## Quickstart (mock — CI/demo only)
 
-Requires Lean 4 (`lean-toolchain`), OpenSSL, and `lake update` (pulls [lean-grpc](https://github.com/RileyBetts/lean-grpc) v1.0.0).
+Requires Lean 4 (`lean-toolchain`), OpenSSL, and `lake update` (pulls [lean-grpc](https://github.com/RileyBetts/lean-grpc) v1.1.0).
 
 **This path uses `lean-tee-v1` mock prove. Do not treat it as production attestation.**
 
@@ -130,7 +130,7 @@ SP1 ownership split (Lean guest + glue vs upstream prover): [docs/LEAN_SP1_GUEST
 
 ## Dependencies
 
-- [lean-grpc](https://github.com/RileyBetts/lean-grpc) **v1.0.0** — fetched by `lake update` (git pin in [`lakefile.lean`](lakefile.lean); see [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md))
+- [lean-grpc](https://github.com/RileyBetts/lean-grpc) **v1.1.0** — fetched by `lake update` (git pin in [`lakefile.lean`](lakefile.lean); see [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md))
 - OpenSSL (`libssl-dev`, `pkg-config`)
 - Optional: [SP1](https://github.com/succinctlabs/sp1) toolchain (`sp1up`) for `lean-tee-v2` / `--features sp1` (upstream **MIT OR Apache-2.0**)
 

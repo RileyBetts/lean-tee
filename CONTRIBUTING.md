@@ -18,7 +18,7 @@ cd lean-tee
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
 sudo apt-get install -y libssl-dev pkg-config   # Debian/Ubuntu
 
-lake update    # fetches lean-grpc v1.0.0 into .lake/packages
+lake update    # fetches lean-grpc v1.1.0 into .lake/packages
 lake build receiptTests teeServer teeClient
 ./.lake/build/bin/receiptTests
 ```

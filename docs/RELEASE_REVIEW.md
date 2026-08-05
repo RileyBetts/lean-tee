@@ -19,7 +19,7 @@ Gate checklist before flipping [RileyBetts/lean-tee](https://github.com/RileyBet
 | Check | Result | Notes |
 | --- | --- | --- |
 | Integrity + non-confidentiality pitch | **Pass** | README first screen preserved |
-| lean-grpc public pin | **Pass** | Lake `@ v1.0.0`; sibling checkout optional |
+| lean-grpc public pin | **Pass** | Lake `@ v1.1.0`; sibling checkout optional |
 | Product-first doc path | **Pass** | GETTING_STARTED next-reading ordered; RFCs under [`docs/rfcs/`](rfcs/) |
 | `trade_operator` registry | **Fix applied** | Added to [`config/guests/registry.json`](../config/guests/registry.json) |
 
@@ -50,7 +50,7 @@ Gate checklist before flipping [RileyBetts/lean-tee](https://github.com/RileyBet
 | Land hygiene fixes on `main` | **Done** (`9e0a49b`) |
 | Enable vulnerability alerts / secret scanning | **Done** |
 | Set visibility public | **Done** — https://github.com/RileyBetts/lean-tee |
-| Fresh-clone verify | **Done** — `git clone` + `lake update` (lean-grpc v1.0.0) |
+| Fresh-clone verify | **Done** — `git clone` + `lake update` (lean-grpc v1.1.0) |
 | Release note / Reservoir watch | **Done** — `v1.0.1` is latest; watch Reservoir over coming days |
 
 ## Deferred (honest roadmap)

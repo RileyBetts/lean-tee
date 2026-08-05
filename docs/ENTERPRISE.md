@@ -29,7 +29,7 @@ Client --mTLS--> Envoy:443 --h2c--> teeServer:50071
 
 Require client certs mapped to a tenant id; pass tenant via `LEAN_TEE_TENANT` in the app environment, or terminate auth at the proxy and set `LEAN_TEE_API_KEY` per environment.
 
-lean-grpc v1.0.0 local demos use h2c; do not expose h2c on the public internet.
+lean-grpc v1.1.0 local demos use h2c; do not expose h2c on the public internet.
 
 ACL file format (Lean parser): [`config/acl.example.txt`](../config/acl.example.txt). JSON sketch for docs: [`config/acl.example.json`](../config/acl.example.json).
 

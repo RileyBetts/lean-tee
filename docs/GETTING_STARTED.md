@@ -12,7 +12,7 @@ This guide gets you from a fresh clone to a **working mock demo** in under fifte
 | Python 3 (optional) | Stdlib client; `pytest` for tests |
 | [SP1](https://docs.succinct.xyz/docs/sp1/getting-started/install) (optional) | **6.3.1** — only for `lean-tee-v2` prove path |
 
-**Not required:** AWS Nitro, Anchor Chain checkout, or a sibling `lean-grpc` directory. Lake fetches [lean-grpc](https://github.com/RileyBetts/lean-grpc) **v1.0.0** via git when you run `lake update`.
+**Not required:** AWS Nitro, Anchor Chain checkout, or a sibling `lean-grpc` directory. Lake fetches [lean-grpc](https://github.com/RileyBetts/lean-grpc) **v1.1.0** via git when you run `lake update`.
 
 ## 1. Clone and build (mock path)
 

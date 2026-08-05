@@ -15,7 +15,7 @@ package «lean-tee» where
 
 /-- Pinned for CI, docs, and [Reservoir](https://reservoir.lean-lang.org/) reproducible builds. -/
 require «lean-grpc» from git
-  "https://github.com/RileyBetts/lean-grpc.git" @ "v1.0.0"
+  "https://github.com/RileyBetts/lean-grpc.git" @ "v1.1.0"
 
 target sha256_ffi.o pkg : FilePath := do
   let oFile := pkg.buildDir / "native" / "sha256_ffi.o"
