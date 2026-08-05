@@ -8,6 +8,8 @@ Imagine a compliance check, a vote, or a trade gate: someone submits an action, 
 
 **How SP1 fits in.** The production path runs that policy program inside [SP1](https://github.com/succinctlabs/sp1), a *zkVM* (think: a special computer that can prove what it executed). SP1 produces a cryptographic proof that *this exact guest program* saw *these inputs* and produced *this output*. lean-tee wraps that into a stable receipt and API. Checking the proof is much cheaper than trusting the operator — and cheaper than re-running everything yourself when you only need to know the result is real.
 
+**Lean 4 on SP1.** Beyond wrapping SP1, this repo adds a **Lean 4 toolchain path into the zkVM**: we port a Lean 4.32.1 runtime and compile measured guests Lean → C → RISC-V so the program that SP1 proves can be written and specified in Lean—not only as a Rust twin. Details: [docs/LEAN_SP1_GUEST.md](docs/LEAN_SP1_GUEST.md).
+
 **What this is not.** lean-tee does **not** hide secrets from the machine that runs it. If you need sealed keys or private data the host must never see, use a confidential enclave (e.g. AWS Nitro) for that part, and lean-tee for public, verifiable outcomes. More below and in [docs/VS_NITRO.md](docs/VS_NITRO.md).
 
 ---
@@ -32,6 +34,7 @@ Set `LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2` and wire `LEAN_TEE_PROVE_ADDR` to an 
 - **Portable attestation** — verify on CI, another cloud, or a chain without embedding AWS PCR/NSM trust.
 - **Cheap reject** — forged receipts fail Accept; goldens + adversarial demos gate the algorithms.
 - **Spec-first** — Lean checkers + Rust `lean_tee_receipt` twin; wire proto is normative.
+- **Lean 4 toolchain on SP1** — measured guest is Lean-compiled (runtime port + Init allow-list); SP1 proves that Lean guest, not a hand-written substitute.
 - **Multi-guest enterprise shape** — ACL, audit, quotas, durable jobs ([ENTERPRISE.md](docs/ENTERPRISE.md)) without pretending to be Nitro.
 
 ## Nitro in one glance
@@ -64,7 +67,9 @@ lake build receiptTests teeServer teeClient teeLoopback
 
 ## Production path (`lean-tee-v2`)
 
-1. Install SP1 (`sp1up`) and build host with `--features sp1`.
+Measured guest = **Lean 4 → C → SP1 RISC-V** (`host/guest_lean` + `host/lean_sp1_runtime/`). See [LEAN_SP1_GUEST.md](docs/LEAN_SP1_GUEST.md).
+
+1. Install SP1 (`sp1up`, including `--c-toolchain`) and build host with `--features sp1`.
 2. Run `prove_server` (CPU/network prover) and point `teeServer` at it:
 
 ```bash
