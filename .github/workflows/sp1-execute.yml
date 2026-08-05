@@ -44,7 +44,18 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: lean-tee
+      - uses: actions/checkout@v4
+        with:
+          repository: RileyBetts/lean-grpc
+          ref: v1.0.0
+          path: lean-grpc
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libssl-dev pkg-config
       - name: Install Lean 4.32.1 (elan)
         run: |
           set -euo pipefail
@@ -64,6 +75,7 @@ jobs:
           test -x "$HOME/.sp1/riscv/bin/riscv64-unknown-elf-gcc"
           "$HOME/.sp1/riscv/bin/riscv64-unknown-elf-gcc" --version | head -1
       - name: SP1 Lean guest smoke (execute + digest pin)
+        working-directory: lean-tee
         env:
           # PR: execute + mock prove-one. Schedule: execute-only. Manual: inputs.
           SP1_PROVE_ONE: ${{ github.event_name == 'pull_request' && '1' || (github.event_name == 'workflow_dispatch' && inputs.prove_one && '1' || '0') }}
@@ -75,7 +87,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sp1-guest-digests
-          path: artifacts/sp1_guest_digests.json
+          path: lean-tee/artifacts/sp1_guest_digests.json
           if-no-files-found: error
 
   sp1-prove-heavy:
@@ -87,7 +99,18 @@ jobs:
     timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: lean-tee
+      - uses: actions/checkout@v4
+        with:
+          repository: RileyBetts/lean-grpc
+          ref: v1.0.0
+          path: lean-grpc
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libssl-dev pkg-config
       - name: Install Lean 4.32.1 (elan)
         run: |
           set -euo pipefail
@@ -103,6 +126,7 @@ jobs:
           "$HOME/.sp1/bin/sp1up"
           "$HOME/.sp1/bin/sp1up" --c-toolchain
       - name: SP1 real CPU prove+verify (case 0)
+        working-directory: lean-tee
         env:
           SP1_PROVE_ONE: "1"
           SP1_PROVE_HEAVY: "1"
@@ -113,5 +137,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sp1-guest-digests-heavy
-          path: artifacts/sp1_guest_digests.json
+          path: lean-tee/artifacts/sp1_guest_digests.json
           if-no-files-found: error
