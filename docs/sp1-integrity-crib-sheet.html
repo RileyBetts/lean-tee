@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SP1 integrity crib sheet — lean-tee</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap");
+
+    :root {
+      --ink: #0e1a24;
+      --muted: #4a5d6a;
+      --paper: #eef3f6;
+      --panel: #f8fbfd;
+      --line: #c5d0d8;
+      --accent: #0a6e7a;
+      --accent-soft: #d7eef1;
+      --ok: #0d6b4c;
+      --ok-soft: #ddf3ea;
+      --warn: #9a3412;
+      --warn-soft: #ffedd5;
+      --code-bg: #132029;
+      --code-fg: #d7e6ef;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --sans: "Outfit", "Segoe UI", sans-serif;
+      --serif: "Source Serif 4", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(165deg, #dce8ee 0%, transparent 42%),
+        linear-gradient(340deg, #cfe3e6 0%, transparent 38%),
+        var(--paper);
+      font-family: var(--serif);
+      font-size: 1.06rem;
+      line-height: 1.7;
+    }
+    .wrap { max-width: 48rem; margin: 0 auto; padding: 2.5rem 1.25rem 4.5rem; }
+    header.hero {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.35rem;
+    }
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 0.75rem;
+    }
+    h1 {
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: clamp(1.55rem, 3.5vw, 2.1rem);
+      line-height: 1.18;
+      margin: 0 0 0.75rem;
+      letter-spacing: -0.03em;
+    }
+    .lede {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+      max-width: 40rem;
+    }
+    .meta {
+      margin-top: 0.9rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    h2 {
+      font-family: var(--sans);
+      font-size: 1.2rem;
+      margin: 2rem 0 0.65rem;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 0.3rem;
+      letter-spacing: -0.02em;
+    }
+    h3 {
+      font-family: var(--sans);
+      font-size: 1.02rem;
+      margin: 1.25rem 0 0.4rem;
+    }
+    p { margin: 0 0 0.85rem; }
+    a { color: var(--accent); }
+    ul, ol { margin: 0 0 1rem; padding-left: 1.25rem; }
+    li { margin: 0.25rem 0; }
+    code {
+      font-family: var(--mono);
+      font-size: 0.86em;
+      background: rgba(10, 110, 122, 0.08);
+      padding: 0.05em 0.3em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      margin: 0 0 1rem;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 0.45rem 0.6rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--accent-soft);
+      font-family: var(--sans);
+      font-size: 0.8rem;
+    }
+    .callout {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 0.85rem 1rem;
+      margin: 0 0 1rem;
+    }
+    .callout.warn {
+      border-color: #f0c9a8;
+      background: var(--warn-soft);
+    }
+    .callout.ok {
+      border-color: #9fd4bd;
+      background: var(--ok-soft);
+    }
+    .callout .label {
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+    .callout.warn .label { color: var(--warn); }
+    .callout.ok .label { color: var(--ok); }
+    .one-liner {
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 1.05rem;
+      line-height: 1.45;
+      margin: 0;
+    }
+    .flow {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      background: var(--code-bg);
+      color: var(--code-fg);
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      line-height: 1.55;
+      margin: 0 0 1rem;
+      white-space: pre;
+    }
+    nav.toc {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 0.85rem 1rem;
+      margin: 0 0 1.5rem;
+      font-size: 0.95rem;
+    }
+    nav.toc strong {
+      font-family: var(--sans);
+      font-size: 0.8rem;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+    nav.toc ol { margin: 0; padding-left: 1.2rem; }
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <p class="eyebrow">lean-tee · crib sheet</p>
+      <h1>How SP1 gives lean-tee integrity (plain English)</h1>
+      <p class="lede">
+        A short guide to what the SP1 proof is doing in lean-tee — for readers who are not
+        cryptographers. Integrity of a public run, not a hardware secret vault.
+      </p>
+      <p class="meta">Profile <code>lean-tee-v2</code> · guest <code>lean_tee_guest_lean</code> · SP1 6.3.1</p>
+    </header>
+
+    <nav class="toc" aria-label="Contents">
+      <strong>Contents</strong>
+      <ol>
+        <li><a href="#question">The question SP1 answers</a></li>
+        <li><a href="#cast">Cast of characters</a></li>
+        <li><a href="#run">One job, step by step</a></li>
+        <li><a href="#stable">What stays the same</a></li>
+        <li><a href="#fake">Why a fake story fails</a></li>
+        <li><a href="#terms">Glossary</a></li>
+        <li><a href="#not">What this is not</a></li>
+      </ol>
+    </nav>
+
+    <div class="callout ok">
+      <span class="label">One sentence</span>
+      <p class="one-liner">
+        SP1 watches the agreed program run, builds a hard-to-forge certificate that that run
+        really linked those inputs to those outputs, and lets anyone else check the certificate
+        quickly — without keeping or replaying the full CPU worksheet.
+      </p>
+    </div>
+
+    <section id="question">
+      <h2>1. The question SP1 answers</h2>
+      <p>
+        In lean-tee, SP1 is used for <strong>integrity</strong>:
+      </p>
+      <blockquote style="margin:0 0 1rem; padding:0.6rem 1rem; border-left:3px solid var(--accent); color:var(--muted);">
+        Can we believe that <strong>this agreed program</strong> really ran on
+        <strong>these public inputs</strong> and produced <strong>these public outputs</strong>?
+      </blockquote>
+      <div class="callout warn">
+        <span class="label">Not Nitro confidentiality</span>
+        This is <em>not</em> “the host couldn’t see the data.” The proving machine can still
+        see public inputs. For secrecy vs Nitro, see
+        <a href="VS_NITRO.md">VS_NITRO.md</a>.
+      </div>
+    </section>
+
+    <section id="cast">
+      <h2>2. Cast of characters</h2>
+      <table>
+        <thead>
+          <tr><th>Role</th><th>Who</th><th>Job</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Guest program</strong></td>
+            <td>Measured ELF <code>lean_tee_guest_lean</code></td>
+            <td>Ordinary logic: read inputs → decide → write outputs. Does <em>not</em> build the zk proof.</td>
+          </tr>
+          <tr>
+            <td><strong>Host prover</strong></td>
+            <td>SP1 SDK in <code>prove_server</code></td>
+            <td>Runs the guest, records the run, builds the proof, verifies before advertising it.</td>
+          </tr>
+          <tr>
+            <td><strong>Verifier</strong></td>
+            <td>Another node / Anchor / auditor</td>
+            <td>Checks the proof quickly with the verifying key — no full re-run, no full trace.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="run">
+      <h2>3. One job, step by step</h2>
+
+      <h3>Agree the program</h3>
+      <p>
+        Parties pin <em>which</em> software counts (logical <code>codeHash</code>, plus published
+        ELF / verifying-key digests). Analogy: agree which official calculator is allowed — not
+        which buttons you’ll press later.
+      </p>
+
+      <h3>Run this job</h3>
+      <p>The host feeds the guest three public stdin values:</p>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Value</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td><code>config_hash</code></td><td>32-byte digest of rules, or of GuestProg bytes</td></tr>
+          <tr><td>2</td><td><code>inputs</code></td><td>e.g. <code>action=vote.yes</code></td></tr>
+          <tr><td>3</td><td><code>program</code></td><td>GuestProg bytes, or empty → compliance path</td></tr>
+        </tbody>
+      </table>
+      <p>Guest writes public outputs (e.g. <code>decision=allow</code>).</p>
+
+      <h3>Record the worksheet (execution trace)</h3>
+      <p>
+        SP1 records a detailed <strong>execution trace</strong>: how the virtual CPU stepped from
+        inputs to outputs. Different jobs → different traces. The trace is a
+        <strong>temporary worksheet</strong>, not usually what you archive for audit.
+      </p>
+
+      <h3>Build the certificate (proof)</h3>
+      <p>
+        Using a <strong>proving key</strong> tied to that guest program, SP1 turns a
+        <em>valid</em> worksheet into a small <strong>proof</strong>:
+        “a correct run of <em>this</em> program on <em>these</em> inputs produced <em>these</em> outputs.”
+      </p>
+      <ul>
+        <li>Exam booklet = full trace (huge; discard after).</li>
+        <li>Sealed certificate = proof (compact; this is what travels).</li>
+      </ul>
+      <p>
+        The proof is a cryptographic object — <strong>not</strong> merely a hash of inputs‖outputs.
+        Anyone can hash those; that would not prove a real run happened.
+      </p>
+
+      <h3>Check the certificate (verify)</h3>
+      <p>
+        With the public <strong>verifying key (vk)</strong>, anyone checks the proof against the
+        public values. lean-tee stores a receipt and often <code>proof_ref</code> =
+        SHA-256 of the serialized proof (a handle for the proof blob).
+      </p>
+
+      <div class="flow">agree program (ELF / vk)
+    │
+    ▼
+run guest on (config_hash, inputs, program)  →  outputs
+    │
+    ▼
+SP1 records valid execution trace  (temporary)
+    │
+    ▼
+SP1 prove(proving key, run)  →  proof
+    │
+    ▼
+verify(vk, public values, proof)  →  accept / reject
+    │
+    ▼
+receipt + proof_ref  (what counterparties keep)</div>
+    </section>
+
+    <section id="stable">
+      <h2>4. What stays the same vs what changes</h2>
+      <table>
+        <thead>
+          <tr><th>Stable (identity)</th><th>Per job (this run)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Guest ELF / verifying key</td>
+            <td>Execution trace</td>
+          </tr>
+          <tr>
+            <td>Logical <code>codeHash</code> / operator id</td>
+            <td>Inputs, outputs, proof, <code>proof_ref</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Program identity is stable. Each proof is about <strong>one specific run</strong>.
+      </p>
+    </section>
+
+    <section id="fake">
+      <h2>5. Why a fake story fails</h2>
+      <p>
+        An adversary can invent any fake trace they like. They generally
+        <strong>cannot</strong> turn it into a proof that <em>verifies</em> under your vk unless
+        a real run of that ELF could produce those public I/O (assuming SP1 soundness).
+      </p>
+      <p>Intuition:</p>
+      <ul>
+        <li>Valid run → worksheet obeys CPU/program rules → proof can verify.</li>
+        <li>Made-up worksheet → rules don’t hold → prove fails or verify rejects.</li>
+        <li>Forging a verifying proof anyway ≈ breaking the crypto (like forging a signature).</li>
+      </ul>
+      <p>
+        Counterparties don’t need the trace. Verification of the proof
+        <strong>replaces</strong> re-checking the worksheet. Auditors keep the receipt / proof,
+        not the megabyte CPU dump.
+      </p>
+    </section>
+
+    <section id="terms">
+      <h2>6. Glossary</h2>
+      <table>
+        <thead>
+          <tr><th>Term</th><th>Plain meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ELF</strong></td>
+            <td>The guest binary that actually runs in SP1 (<code>lean_tee_guest_lean</code>).</td>
+          </tr>
+          <tr>
+            <td><strong>Trace</strong></td>
+            <td>Step-by-step record of one run. Witness for proving; usually discarded after.</td>
+          </tr>
+          <tr>
+            <td><strong>Proving key (pk)</strong></td>
+            <td>Secret-ish setup material used to <em>create</em> proofs for that ELF.</td>
+          </tr>
+          <tr>
+            <td><strong>Verifying key (vk)</strong></td>
+            <td>Public material used to <em>check</em> proofs for that ELF.</td>
+          </tr>
+          <tr>
+            <td><strong>Proof</strong></td>
+            <td>Compact certificate that a valid run of that program produced the claimed I/O.</td>
+          </tr>
+          <tr>
+            <td><strong>Soundness</strong></td>
+            <td>Fake / invalid runs shouldn’t yield a proof that verifies (except negligible chance).</td>
+          </tr>
+          <tr>
+            <td><strong>proof_ref</strong></td>
+            <td>In lean-tee: hash of the serialized proof — a receipt handle, not the proof math itself.</td>
+          </tr>
+          <tr>
+            <td><strong>Measurement</strong></td>
+            <td>Wire fields <code>codeHash</code> + <code>configHash</code> (logical identity + rules/program digest).</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="not">
+      <h2>7. What this is not</h2>
+      <ul>
+        <li>Not a guarantee the host will always cooperate (it can refuse to prove).</li>
+        <li>Not confidentiality against the proving machine.</li>
+        <li>Not “the same CPU trace every time” — only the same <em>program</em>.</li>
+        <li>Not something the guest Lean code constructs; SP1 on the host does.</li>
+      </ul>
+      <p>
+        Related docs:
+        <a href="LEAN_SP1_GUEST.md">LEAN_SP1_GUEST.md</a>,
+        <a href="THREAT_MODEL.md">THREAT_MODEL.md</a>,
+        <a href="VS_NITRO.md">VS_NITRO.md</a>,
+        <a href="anchor-strict-lean-tee-attestation.html">Anchor Strict attestation</a>,
+        <a href="../artifacts/sp1_guest_digests.json">published ELF/vk digests</a>.
+      </p>
+    </section>
+
+    <footer>
+      lean-tee docs · SP1 integrity crib sheet · open this file in a browser
+    </footer>
+  </div>
+</body>
+</html>

@@ -5,7 +5,8 @@
 Measured SP1 guest ELF produced from **Lean → C → RISC-V**, not a Rust semantic twin.
 SP1 is retained for the Lean-oriented prover formalization track (`sp1-lean`).
 
-Plan: see [lean-sp1-guest-plan.html](lean-sp1-guest-plan.html).
+Plan: see [lean-sp1-guest-plan.html](lean-sp1-guest-plan.html).  
+Plain-English how the proof works: [sp1-integrity-crib-sheet.html](sp1-integrity-crib-sheet.html).
 
 ## Phase 0 (landed spike)
 
