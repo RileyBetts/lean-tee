@@ -25,7 +25,7 @@ body:
     attributes:
       label: Version
       description: Tag, commit SHA, or branch
-      placeholder: v1.0.0
+      placeholder: v1.0.1
   - type: dropdown
     id: path
     attributes:

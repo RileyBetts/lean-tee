@@ -7,7 +7,7 @@ open Lake DSL
 open System
 
 package «lean-tee» where
-  version := v!"1.0.0"
+  version := v!"1.0.1"
   keywords := #["tee", "zkvm", "grpc", "compliance", "attestation"]
   description := "Lean-specified zkTEE: measured guest execution, hashed receipts, lean-grpc APIs"
   license := "Apache-2.0"

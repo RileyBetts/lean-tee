@@ -2,12 +2,22 @@
 
 ## Unreleased
 
+## 1.0.1 — 2026-08-05
+
+Patch release: CI fixes + package metadata aligned to tag `v1.0.1`.
+
+### Fixes
+
+- Rust client fills new Execute / Measure / Prove proto fields (unblocks `rust-mock` CI)
+- `lean-mock` CI installs Lean via elan at repo root (fixes broken lean-action checkout path)
+
 ### Public release hygiene
 
 - Add `trade_operator` to `config/guests/registry.json` (aligned with Lean/Rust builtins)
 - Security contact email, Contributor Covenant CoC, issue/PR templates, Dependabot, CODEOWNERS
 - Move Init RFC + guest plan HTML under `docs/rfcs/`; product-first doc reading order
 - Document unsafe prod env vars (`ALLOW_MOCK_V2`, `TRUST_PROOF_OK`); release review scorecard
+- Package versions: Lake `1.0.1`, host workspace `1.0.1`, Rust client `1.0.1`
 
 ## 1.0.0 — 2026-08-05
 
