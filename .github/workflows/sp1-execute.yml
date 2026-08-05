@@ -1,12 +1,27 @@
 name: sp1-execute
 
-# Gated SP1 path: weekly + manual. Default = execute-only on Lean guest ELF.
-# Optional mock prove-one (workflow_dispatch).
-# Real CPU prove only when prove_one + prove_heavy (OOM risk on ubuntu-latest).
+# SP1 path: PR/push (path-filtered), weekly execute + digest pin check,
+# weekly heavy prove on a larger runner, manual dispatch overrides.
 
 on:
+  pull_request:
+    paths: &sp1_paths
+      - "host/guest_lean/**"
+      - "host/guest_lean_spike/**"
+      - "host/lean_sp1_runtime/**"
+      - "host/lean_sp1_init_min/**"
+      - "host/prove_server/**"
+      - "LeanTee/GuestSp1.lean"
+      - "LeanTee/GuestProg.lean"
+      - "scripts/sp1_*"
+      - "artifacts/sp1_guest_digests.json"
+      - ".github/workflows/sp1-execute.yml"
+  push:
+    branches: [main, lean-sp1-guest]
+    paths: *sp1_paths
   schedule:
-    - cron: "17 6 * * 1" # weekly Monday 06:17 UTC
+    - cron: "17 6 * * 1" # weekly Monday 06:17 UTC — execute + digest pin
+    - cron: "47 7 * * 1" # weekly Monday 07:47 UTC — real CPU prove (larger runner)
   workflow_dispatch:
     inputs:
       prove_one:
@@ -14,12 +29,17 @@ on:
         type: boolean
         default: true
       prove_heavy:
-        description: "Real CPU prove+verify of Lean ELF (needs prove_one; aborts if <10GiB free unless runner is large)"
+        description: "Real CPU prove+verify of Lean ELF (needs prove_one; uses larger runner job)"
         type: boolean
         default: false
 
 jobs:
-  sp1-execute-only:
+  sp1-execute:
+    if: |
+      github.event_name == 'pull_request' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'schedule' && github.event.schedule == '17 6 * * 1') ||
+      (github.event_name == 'workflow_dispatch' && !inputs.prove_heavy)
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -43,17 +63,55 @@ jobs:
           "$HOME/.sp1/bin/sp1up" --c-toolchain
           test -x "$HOME/.sp1/riscv/bin/riscv64-unknown-elf-gcc"
           "$HOME/.sp1/riscv/bin/riscv64-unknown-elf-gcc" --version | head -1
-      - name: SP1 Lean guest smoke
+      - name: SP1 Lean guest smoke (execute + digest pin)
         env:
-          # Schedule: execute-only. Manual: prove_one default true → mock prove case 0.
-          SP1_PROVE_ONE: ${{ github.event_name == 'workflow_dispatch' && inputs.prove_one && '1' || '0' }}
-          # Heavy only on explicit workflow_dispatch prove_heavy (+ prove_one). Never on schedule.
-          SP1_PROVE_HEAVY: ${{ github.event_name == 'workflow_dispatch' && inputs.prove_one && inputs.prove_heavy && '1' || '0' }}
+          # PR: execute + mock prove-one. Schedule: execute-only. Manual: inputs.
+          SP1_PROVE_ONE: ${{ github.event_name == 'pull_request' && '1' || (github.event_name == 'workflow_dispatch' && inputs.prove_one && '1' || '0') }}
+          SP1_PROVE_HEAVY: "0"
+          SP1_CHECK_DIGESTS: "1"
           CARGO_TERM_COLOR: always
         run: bash scripts/sp1_execute_ci.sh
       - name: Upload guest digests
         uses: actions/upload-artifact@v4
         with:
           name: sp1-guest-digests
+          path: artifacts/sp1_guest_digests.json
+          if-no-files-found: error
+
+  sp1-prove-heavy:
+    # 32 GiB RAM — enable GitHub larger runners for the org/repo if this job queues forever.
+    runs-on: ubuntu-latest-8-cores
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule == '47 7 * * 1') ||
+      (github.event_name == 'workflow_dispatch' && inputs.prove_one && inputs.prove_heavy)
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Lean 4.32.1 (elan)
+        run: |
+          set -euo pipefail
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf \
+            | sh -s -- -y --default-toolchain leanprover/lean4:v4.32.1
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Install SP1 toolchain (+ C)
+        run: |
+          set -euo pipefail
+          curl -L https://sp1up.succinct.xyz | bash
+          echo "$HOME/.sp1/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.sp1/riscv/bin" >> "$GITHUB_PATH"
+          "$HOME/.sp1/bin/sp1up"
+          "$HOME/.sp1/bin/sp1up" --c-toolchain
+      - name: SP1 real CPU prove+verify (case 0)
+        env:
+          SP1_PROVE_ONE: "1"
+          SP1_PROVE_HEAVY: "1"
+          SP1_CHECK_DIGESTS: "1"
+          CARGO_TERM_COLOR: always
+        run: bash scripts/sp1_execute_ci.sh
+      - name: Upload guest digests (post-prove)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sp1-guest-digests-heavy
           path: artifacts/sp1_guest_digests.json
           if-no-files-found: error

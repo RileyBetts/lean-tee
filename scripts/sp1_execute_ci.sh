@@ -39,10 +39,21 @@ echo "== build sp1_smoke (Lean guest ELF) =="
 cargo build -p lean_tee_prove_server --release --bin sp1_smoke --features sp1
 
 DIGEST_OUT="$ROOT/artifacts/sp1_guest_digests.json"
+DIGEST_PINNED="$ROOT/artifacts/sp1_guest_digests.pinned.json"
 mkdir -p "$ROOT/artifacts"
+if [[ "${SP1_CHECK_DIGESTS:-}" == "1" ]]; then
+  if [[ ! -f "$ROOT/artifacts/sp1_guest_digests.json" ]]; then
+    echo "missing pinned artifacts/sp1_guest_digests.json" >&2
+    exit 1
+  fi
+  cp "$ROOT/artifacts/sp1_guest_digests.json" "$DIGEST_PINNED"
+fi
 echo "== SP1 execute-only + guest digests (compliance + GuestProg; Lean guest) =="
 SP1_PROVER=cpu ./target/release/sp1_smoke --execute-only \
   --print-digests --write-digests "$DIGEST_OUT"
+if [[ "${SP1_CHECK_DIGESTS:-}" == "1" ]]; then
+  python3 "$ROOT/scripts/sp1_guest_digests_check.py" "$DIGEST_PINNED" "$DIGEST_OUT"
+fi
 
 if [[ "${SP1_PROVE_ONE:-}" == "1" ]]; then
   echo "== optional single prove (case 0 = compliance-allow-yes) =="

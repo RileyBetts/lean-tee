@@ -11,6 +11,10 @@ lake build receiptTests teeServer teeLoopback proveMockServer rustProveLoopback
 ./.lake/build/bin/receiptTests
 ./.lake/build/bin/teeLoopback
 
+if command -v pytest >/dev/null 2>&1; then
+  PYTHONPATH="$ROOT/clients/python" pytest "$ROOT/clients/python/tests" -q
+fi
+
 # Rust Prove host (RISC-V guest logic; mock proof without SP1 toolchain)
 export CARGO_TARGET_DIR="$ROOT/host/target"
 cd host

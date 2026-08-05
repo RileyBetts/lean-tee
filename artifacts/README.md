@@ -12,3 +12,5 @@ bash scripts/sp1_guest_digest.sh
 ```
 
 Also produced by `scripts/sp1_execute_ci.sh` and uploaded from the `sp1-execute` workflow.
+
+CI verifies regenerated digests match the pinned file when `SP1_CHECK_DIGESTS=1` (see `scripts/sp1_guest_digests_check.py`).

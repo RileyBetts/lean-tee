@@ -32,6 +32,9 @@ jobs:
           ./.lake/build/bin/receiptTests
           ./.lake/build/bin/goldenVectors
           ./.lake/build/bin/guestRegistry
+          ./.lake/build/bin/teeLoopback
+          pip install pytest -q
+          PYTHONPATH="$PWD/clients/python" pytest clients/python/tests -q
           bash scripts/standalone_demo.sh
           bash scripts/adversarial_matrix_demo.sh
           bash scripts/action_matrix_demo.sh
