@@ -1777,7 +1777,7 @@ dependencies = [
 
 [[package]]
 name = "lean_tee_compliance"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "hex",
  "lean_tee_receipt",
@@ -1786,7 +1786,7 @@ dependencies = [
 
 [[package]]
 name = "lean_tee_confidential"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "lean_tee_compliance",
  "lean_tee_receipt",
@@ -1796,7 +1796,7 @@ dependencies = [
 
 [[package]]
 name = "lean_tee_guest"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "lean_tee_compliance",
  "sp1-zkvm",
@@ -1804,14 +1804,14 @@ dependencies = [
 
 [[package]]
 name = "lean_tee_guest_lean"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "sp1-zkvm",
 ]
 
 [[package]]
 name = "lean_tee_guest_lean_spike"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "cc",
  "sp1-zkvm",
@@ -1819,7 +1819,7 @@ dependencies = [
 
 [[package]]
 name = "lean_tee_prove_server"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "bincode",
  "bytes",
@@ -1841,7 +1841,7 @@ dependencies = [
 
 [[package]]
 name = "lean_tee_receipt"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "blake3",
  "hex",

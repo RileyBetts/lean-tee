@@ -1,6 +1,7 @@
 # Contributing to lean-tee
 
 Thank you for helping improve lean-tee. This project is Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+By participating, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Before you start
 
@@ -77,3 +78,4 @@ Do not run real CPU `SP1_PROVER=cpu --prove-one` on ≤16 GiB machines without
 ## Reporting issues
 
 Use GitHub Issues for bugs and feature requests. For security-sensitive reports, see [SECURITY.md](SECURITY.md).
+Please be respectful — see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

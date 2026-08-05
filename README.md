@@ -102,7 +102,7 @@ LEAN_TEE_PROVE_MODE=mock LEAN_TEE_PROVE_PORT=50072 \
 - Shared Rust algorithms: crate `lean_tee_receipt` under [`host/receipt`](host/receipt)
 - Production prove: SP1 Hypercube via `lean-tee-v2` + host verify
 
-Docs: [GETTING_STARTED](docs/GETTING_STARTED.md) · [PRODUCT](docs/PRODUCT.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [CONFIDENTIALITY](docs/CONFIDENTIALITY.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
+Docs: [GETTING_STARTED](docs/GETTING_STARTED.md) · [PRODUCT](docs/PRODUCT.md) · [THREAT_MODEL](docs/THREAT_MODEL.md) · [CRYPTO](docs/CRYPTO.md) · [LEAN_SP1_GUEST](docs/LEAN_SP1_GUEST.md) · [GUEST_PROG](docs/GUEST_PROG.md) · [CONFIDENTIALITY](docs/CONFIDENTIALITY.md) · [VS_NITRO](docs/VS_NITRO.md) · [API](docs/API.md) · [ENTERPRISE](docs/ENTERPRISE.md) · [SLA](docs/SLA.md)
 
 ## Layout
 
@@ -136,7 +136,7 @@ SP1 ownership split (Lean guest + glue vs upstream prover): [docs/LEAN_SP1_GUEST
 
 ## Community
 
-- [Getting started](docs/GETTING_STARTED.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+- [Getting started](docs/GETTING_STARTED.md) · [Contributing](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Security](SECURITY.md)
 
 ## Status
 

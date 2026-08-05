@@ -5,7 +5,7 @@
 Measured SP1 guest ELF produced from **Lean → C → RISC-V**, not a Rust semantic twin.
 SP1 is retained for the Lean-oriented prover formalization track (`sp1-lean`).
 
-Plan: see [lean-sp1-guest-plan.html](lean-sp1-guest-plan.html).  
+Historical plan (RFC archive): [rfcs/lean-sp1-guest-plan.html](rfcs/lean-sp1-guest-plan.html).
 Plain-English how the proof works: [sp1-integrity-crib-sheet.html](sp1-integrity-crib-sheet.html).
 
 ## Ownership (what this repo contributes vs SP1)
@@ -16,7 +16,7 @@ Plain-English how the proof works: [sp1-integrity-crib-sheet.html](sp1-integrity
 | --- | --- |
 | Guest logic | `GuestSp1` / `GuestProg` / compliance + portable SHA → C → RISC-V |
 | Guest crate | `host/guest_lean/` (thin I/O shell linking Lean archives) |
-| Lean→SP1 runtime | Fetch/patch/build (`sp1_lean_runtime_*.sh`, `sp1_lean_runtime_patch.py`), overlays in `host/lean_sp1_runtime/`, minimal Init + [Init RFC](LEAN_SP1_INIT_RFC.md) |
+| Lean→SP1 runtime | Fetch/patch/build (`sp1_lean_runtime_*.sh`, `sp1_lean_runtime_patch.py`), overlays in `host/lean_sp1_runtime/`, minimal Init + [Init RFC](rfcs/LEAN_SP1_INIT_RFC.md) |
 | Host prove path | `prove_server`, `sp1_smoke`, digests (`artifacts/sp1_guest_digests.json`), gated CI |
 | Docs | This guide, crib sheet, plan HTML |
 
@@ -120,7 +120,7 @@ SP1 does not implement RISC-V `FENCE`. Lean 4.32’s `lean_obj_once` inlines a C
 
 ## Phase 4b — Init allow-list RFC
 
-Policy: [`docs/LEAN_SP1_INIT_RFC.md`](LEAN_SP1_INIT_RFC.md).
+Policy: [`docs/rfcs/LEAN_SP1_INIT_RFC.md`](rfcs/LEAN_SP1_INIT_RFC.md).
 
 **Decision (this revision):** Lean shims in GuestProg (`joinSep` / `parseNatDec?` / `natToDec`) cover the measured surface; **no new Init modules** admitted. Growth requires the RFC admission checklist (demand, ISA/fence check, smoke, cycle/size budgets). Soft/hard size checks live in `scripts/sp1_lean_guest_build.sh`.
 

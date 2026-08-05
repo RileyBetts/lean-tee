@@ -16,7 +16,7 @@ Security fixes land on `main` first; maintainers may backport critical fixes to 
 Report privately by one of:
 
 1. **GitHub Security Advisories** — [Open a private advisory](https://github.com/RileyBetts/lean-tee/security/advisories/new) on this repository (preferred once the repo is public).
-2. **Email** — contact the maintainers at the address listed on the GitHub org/profile for Riley Betts Ltd (or the primary maintainer account on the repository).
+2. **Email** — `info@rileybetts.ai` (Riley Betts Ltd)
 
 Include:
 

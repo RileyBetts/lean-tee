@@ -1,0 +1,11 @@
+# Default reviewers for integrity-sensitive paths (Riley Betts Ltd).
+* @robertbetts
+
+/LeanTee/ @robertbetts
+/host/receipt/ @robertbetts
+/host/prove_server/ @robertbetts
+/proto/ @robertbetts
+/artifacts/ @robertbetts
+/docs/THREAT_MODEL.md @robertbetts
+/docs/CRYPTO.md @robertbetts
+/SECURITY.md @robertbetts

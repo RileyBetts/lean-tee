@@ -5,7 +5,7 @@
 # Emit/compile Init subset + GuestSp1 Lake C → .cache/lean-sp1-guest/libLeanTeeGuest.a
 # Links against .cache/lean-sp1-runtime/prefix/lib/libLean.a at the SP1 guest link step.
 #
-# Init allow-list policy: docs/LEAN_SP1_INIT_RFC.md (Phase 4b). Prefer Lean shims over
+# Init allow-list policy: docs/rfcs/LEAN_SP1_INIT_RFC.md (Phase 4b). Prefer Lean shims over
 # adding MODS entries. Do not expand MODS without satisfying the RFC admission rule.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -33,10 +33,10 @@ echo "== lake build GuestSp1 =="
 lake build LeanTee.GuestSp1
 
 echo "== emit Init subset C (toolchain oleans → l_* prefixes) =="
-echo "    (allow-list: docs/LEAN_SP1_INIT_RFC.md)"
+echo "    (allow-list: docs/rfcs/LEAN_SP1_INIT_RFC.md)"
 mkdir -p "$IR" "$IOBJ" "$GOBJ"
 export LEAN_PATH="$TC/lib/lean"
-# Keep in sync with docs/LEAN_SP1_INIT_RFC.md — do not add casually.
+# Keep in sync with docs/rfcs/LEAN_SP1_INIT_RFC.md — do not add casually.
 MODS=(
   Init/Prelude.lean
   Init/Data/List/Basic.lean
@@ -101,7 +101,7 @@ rm -f "$OUT_A"
   "$IOBJ"/GetElem.o "$IOBJ"/Legacy.o "$IOBJ"/Util.o
 
 ls -lh "$OUT_A"
-# Soft budget hint (see docs/LEAN_SP1_INIT_RFC.md); does not fail the build.
+# Soft budget hint (see docs/rfcs/LEAN_SP1_INIT_RFC.md); does not fail the build.
 bytes=$(wc -c <"$OUT_A" | tr -d ' ')
 if [[ "$bytes" -gt $((6 * 1024 * 1024)) ]]; then
   echo "ERROR: $OUT_A exceeds hard RFC budget 6 MiB ($bytes bytes)" >&2

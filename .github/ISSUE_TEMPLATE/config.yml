@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/RileyBetts/lean-tee/security/advisories/new
+    about: Report privately via GitHub Advisories or email info@rileybetts.ai — see SECURITY.md
+  - name: Getting started
+    url: https://github.com/RileyBetts/lean-tee/blob/main/docs/GETTING_STARTED.md
+    about: Fresh-clone setup and mock vs SP1 paths

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Public release hygiene
+
+- Add `trade_operator` to `config/guests/registry.json` (aligned with Lean/Rust builtins)
+- Security contact email, Contributor Covenant CoC, issue/PR templates, Dependabot, CODEOWNERS
+- Move Init RFC + guest plan HTML under `docs/rfcs/`; product-first doc reading order
+- Document unsafe prod env vars (`ALLOW_MOCK_V2`, `TRUST_PROOF_OK`); release review scorecard
+
 ## 1.0.0 — 2026-08-05
 
 First stable release: Lean-measured SP1 guest, integrity-hardened Accept path, adopter docs, and plain-English README pitch.
@@ -21,7 +28,7 @@ First stable release: Lean-measured SP1 guest, integrity-hardened Accept path, a
 
 ### Phase 4b — Init allow-list RFC
 
-- [`docs/LEAN_SP1_INIT_RFC.md`](docs/LEAN_SP1_INIT_RFC.md): allow-list, FENCE/init traps, admission rule, cycle/size budgets.
+- [`docs/rfcs/LEAN_SP1_INIT_RFC.md`](docs/rfcs/LEAN_SP1_INIT_RFC.md): allow-list, FENCE/init traps, admission rule, cycle/size budgets.
 - Decision: current GuestProg Lean shims suffice; no new Init modules. Guest build script enforces hard archive size cap (6 MiB).
 
 ### Phase 4a — Lean guest hardening

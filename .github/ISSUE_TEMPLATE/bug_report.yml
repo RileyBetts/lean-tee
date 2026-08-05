@@ -1,0 +1,39 @@
+name: Bug report
+description: Report a defect in lean-tee (not a security exploit)
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For **exploitable security bugs**, do **not** use this form — see [SECURITY.md](https://github.com/RileyBetts/lean-tee/blob/main/SECURITY.md).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Expected vs actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Steps, commands, and relevant env vars (redact secrets)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Tag, commit SHA, or branch
+      placeholder: v1.0.0
+  - type: dropdown
+    id: path
+    attributes:
+      label: Path
+      options:
+        - Mock / lean-tee-v1
+        - SP1 / lean-tee-v2
+        - Docs / packaging
+        - Other
+    validations:
+      required: true

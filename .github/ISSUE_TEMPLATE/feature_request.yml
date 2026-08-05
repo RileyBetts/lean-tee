@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose an enhancement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What gap does this fill? (integrity, guest, API, docs, …)
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Concrete behavior change; note threat-model impact if any
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        Confidentiality / Nitro-equivalent sealed memory is **out of scope** by design — see [VS_NITRO.md](https://github.com/RileyBetts/lean-tee/blob/main/docs/VS_NITRO.md).

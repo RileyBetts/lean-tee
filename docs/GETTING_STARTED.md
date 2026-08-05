@@ -92,11 +92,13 @@ Details: [host/README.md](../host/README.md), [LEAN_SP1_GUEST.md](LEAN_SP1_GUEST
 | `LEAN_TEE_PORT` | teeServer listen port (default 50071 in demos) |
 | `LEAN_TEE_DEFAULT_PROFILE` | `lean-tee-v2` (default / SP1) or `lean-tee-v1` (mock demos) |
 | `LEAN_TEE_PROVE_ADDR` | Required for v2 — `host:port` of SP1 `prove_server` |
-| `LEAN_TEE_ALLOW_MOCK_V2` | `1` allows v2 profile with in-process mock (demos only) |
-| `LEAN_TEE_TRUST_PROOF_OK` | `1` allows Accept of foreign SP1 receipts when client sets `proof_ok` |
+| `LEAN_TEE_ALLOW_MOCK_V2` | **Unsafe for production.** `1` allows v2 profile with in-process mock (demos only) |
+| `LEAN_TEE_TRUST_PROOF_OK` | **Unsafe for production unless you verified externally.** `1` allows Accept of foreign SP1 receipts when client sets `proof_ok` |
 | `LEAN_TEE_GUESTS_FILE` | Path to guest registry JSON (default `config/guests/registry.json`) |
 | `LEAN_TEE_API_KEY` | Optional shared API key (fail closed if set) |
 | `LEAN_TEE_ACL_FILE` | Tenant / guest ACL — see [ENTERPRISE.md](ENTERPRISE.md) |
+
+Never ship production with `LEAN_TEE_ALLOW_MOCK_V2=1` or with `LEAN_TEE_TRUST_PROOF_OK=1` unless a trusted adapter has already verified the SP1 proof.
 
 ## 6. Reservoir (Lean package index)
 
@@ -113,7 +115,12 @@ This repo declares Reservoir metadata in [`lakefile.lean`](../lakefile.lean) (`l
 
 ## Next reading
 
-- [PRODUCT.md](PRODUCT.md) — scope and guarantees
-- [VS_NITRO.md](VS_NITRO.md) — what this is *not*
-- [THREAT_MODEL.md](THREAT_MODEL.md) — trust boundaries
-- [CONTRIBUTING.md](../CONTRIBUTING.md) — patches and tests
+Product-first path:
+
+1. [PRODUCT.md](PRODUCT.md) — scope and guarantees
+2. [VS_NITRO.md](VS_NITRO.md) — what this is *not*
+3. [THREAT_MODEL.md](THREAT_MODEL.md) — trust boundaries
+4. [CRYPTO.md](CRYPTO.md) — suites, Accept rules, digest pins
+5. [LEAN_SP1_GUEST.md](LEAN_SP1_GUEST.md) — measured guest + ownership split
+
+Also: [CONTRIBUTING.md](../CONTRIBUTING.md) · [SECURITY.md](../SECURITY.md) · [rfcs/](rfcs/) (design archive)

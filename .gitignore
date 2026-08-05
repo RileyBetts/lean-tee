@@ -9,6 +9,8 @@ __pycache__/
 *.pyc
 .venv/
 .cache/
+.env
+.env.*
+!.env.example
 # Local Lean Init package copy for experiments (not the SP1 Init subset).
 host/lean_sp1_init/
-
