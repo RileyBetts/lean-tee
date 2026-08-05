@@ -79,7 +79,7 @@ jobs:
           CARGO_TERM_COLOR: always
         run: bash scripts/sp1_execute_ci.sh
       - name: Upload guest digests
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sp1-guest-digests
           path: lean-tee/artifacts/sp1_guest_digests.json
@@ -124,7 +124,7 @@ jobs:
           CARGO_TERM_COLOR: always
         run: bash scripts/sp1_execute_ci.sh
       - name: Upload guest digests (post-prove)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sp1-guest-digests-heavy
           path: lean-tee/artifacts/sp1_guest_digests.json
