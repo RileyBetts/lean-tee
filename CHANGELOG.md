@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.0.0 — 2026-08-05
+
+First stable release: Lean-measured SP1 guest, integrity-hardened Accept path, adopter docs, and plain-English README pitch.
+
+### Integrity
+
+- SP1 guest ABI binds `codeHash` (+ optional rules); multi-guest surfaces enforced in-guest
+- Receipts stamp real `crypto_suite` (`sha256+mock` / `sha256+sp1`); fail-closed v2 without Prove; Accept for SP1 requires issued receipt (or explicit trust env)
+- Published ELF/vk digests + CI pin check (`artifacts/sp1_guest_digests.json`, `sp1-execute`)
+
 ### Stretch — ELF/vk digests + gated CPU prove
 
 - Publish `elf_sha256` / `vk_*` for `lean_tee_guest_lean` via `sp1_smoke --print-digests` / `scripts/sp1_guest_digest.sh` → `artifacts/sp1_guest_digests.json` (CI artifact on `sp1-execute`).
@@ -31,7 +41,9 @@
 - Optional `LEAN_TEE_CONFIDENTIALITY=local` sealed worker (secrets out of PublicIO; not Nitro)
 - Production default profile `lean-tee-v2`; mock called out as CI-only; weekly/manual SP1 execute CI (`sp1-execute.yml`, `scripts/sp1_execute_ci.sh`)
 - GuestProg v1/v2 on the Lean SP1 guest (execute-only smokes)
+- Adopter docs: CONTRIBUTING, SECURITY, GETTING_STARTED; lean-grpc git pin; README plain-English intro
 - Marketing docs vs Nitro ([VS_NITRO.md](docs/VS_NITRO.md)); multi-guest enterprise packaging; crypto suites; demos
+- Package versions: Lake `1.0.0`, host workspace `1.0.0`, Rust client `1.0.0`
 
 ## 0.1.0 — 2026-08-02
 

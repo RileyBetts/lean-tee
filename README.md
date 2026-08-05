@@ -1,5 +1,19 @@
 # lean-tee
 
+## In plain English
+
+**Prove that a public decision was made by the rules you published — without asking anyone to trust your server, and without locking into AWS Nitro.**
+
+Imagine a compliance check, a vote, or a trade gate: someone submits an action, your policy program runs, and you get a yes/no (or richer) result. With lean-tee, that run produces a **receipt**: a small package that says *which program* ran, *what inputs* it saw, and *what it output*. Others — another team, a chain, a regulator, CI — can **check the receipt** and accept an honest result or reject a forged one. They do not need your cloud account or a sealed hardware box.
+
+**How SP1 fits in.** The production path runs that policy program inside [SP1](https://github.com/succinctlabs/sp1), a *zkVM* (think: a special computer that can prove what it executed). SP1 produces a cryptographic proof that *this exact guest program* saw *these inputs* and produced *this output*. lean-tee wraps that into a stable receipt and API. Checking the proof is much cheaper than trusting the operator — and cheaper than re-running everything yourself when you only need to know the result is real.
+
+**What this is not.** lean-tee does **not** hide secrets from the machine that runs it. If you need sealed keys or private data the host must never see, use a confidential enclave (e.g. AWS Nitro) for that part, and lean-tee for public, verifiable outcomes. More below and in [docs/VS_NITRO.md](docs/VS_NITRO.md).
+
+---
+
+## For builders
+
 **Portable integrity TEE compute for open systems** — measured guests, hashed receipts, and lean-grpc APIs so anyone can accept honest public results or cheaply reject forged ones — without AWS Nitro, sealed memory, or a cloud PKI root of trust.
 
 > **Not a confidentiality enclave.** lean-tee does **not** hide secrets from the host. It replaces Nitro’s *“prove this code ran on this I/O”* role for **public** workloads; it does **not** replace Nitro’s *“keep keys/data sealed”* role. Full matrix: **[docs/VS_NITRO.md](docs/VS_NITRO.md)**.
