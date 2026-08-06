@@ -2,12 +2,14 @@
 
 This guide gets you from a fresh clone to a **working mock demo** in under fifteen minutes. Production SP1 integrity (`lean-tee-v2`) is covered at the end.
 
+**Supported platforms:** Linux and macOS (CI reference is Linux; macOS is first-class for local build and smokes).
+
 ## What you need
 
 | Tool | Version / notes |
 | --- | --- |
 | [Lean 4](https://leanprover.github.io/lean4/doc/setup.html) (elan) | **4.32.1** — pinned in [`lean-toolchain`](../lean-toolchain) |
-| OpenSSL dev | `libssl-dev` + `pkg-config` (host Lake build links `-lssl`) |
+| OpenSSL dev | Host Lake build links `-lssl` (see install below) |
 | Rust (optional) | Stable — for `host/` crates and clients |
 | Python 3 (optional) | Stdlib client; `pytest` for tests |
 | [SP1](https://docs.succinct.xyz/docs/sp1/getting-started/install) (optional) | **6.3.1** — only for `lean-tee-v2` prove path |
@@ -24,7 +26,12 @@ cd lean-tee
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf \
   | sh -s -- -y --default-toolchain leanprover/lean4:v4.32.1
 
-sudo apt-get install -y libssl-dev pkg-config   # Debian/Ubuntu; adjust on macOS
+# OpenSSL + pkg-config
+# Linux (Debian/Ubuntu):
+sudo apt-get install -y libssl-dev pkg-config
+# macOS (Homebrew):
+#   brew install openssl pkg-config
+#   export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig"
 
 lake update
 lake build receiptTests teeServer teeClient teeLoopback
@@ -70,10 +77,12 @@ assert ok, reason
 
 Mock prove is **CI/demo only**. For production integrity:
 
-1. Install SP1: `curl -L https://sp1up.succinct.xyz | bash && sp1up && sp1up --c-toolchain`
-2. Build host: `cd host && cargo build -p lean_tee_prove_server --release --features sp1`
-3. Smoke: `bash scripts/sp1_execute_ci.sh` (execute + digest pin)
-4. Run `prove_server` with `SP1_PROVER=cpu` and point `teeServer` at it:
+1. Install SP1: `curl -L https://sp1.succinct.xyz | bash && sp1up && sp1up --c-toolchain`
+2. **macOS only:** Homebrew libs for the SP1 RISC-V gcc (`cc1plus` dylibs):
+   `brew install isl gmp mpfr libmpc`
+3. Build host: `cd host && cargo build -p lean_tee_prove_server --release --features sp1`
+4. Smoke: `bash scripts/sp1_execute_ci.sh` (execute + digest pin; portable on Linux and macOS)
+5. Run `prove_server` with `SP1_PROVER=cpu` and point `teeServer` at it:
 
 ```bash
 export LEAN_TEE_DEFAULT_PROFILE=lean-tee-v2
@@ -81,7 +90,7 @@ export LEAN_TEE_PROVE_ADDR=127.0.0.1:50072
 # prove_server in one terminal; teeServer in another
 ```
 
-Pin counterparties to published digests in [`artifacts/sp1_guest_digests.json`](../artifacts/sp1_guest_digests.json). Plain-English SP1 background: [sp1-integrity-crib-sheet.html](sp1-integrity-crib-sheet.html).
+Pin counterparties to published digests in [`artifacts/sp1_guest_digests.json`](../artifacts/sp1_guest_digests.json) (Linux CI is the pin source of truth; local Mac rebuilds may differ). Plain-English SP1 background: [sp1-integrity-crib-sheet.html](sp1-integrity-crib-sheet.html).
 
 Details: [host/README.md](../host/README.md), [LEAN_SP1_GUEST.md](LEAN_SP1_GUEST.md).
 

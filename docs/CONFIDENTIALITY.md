@@ -39,7 +39,9 @@ bash scripts/confidentiality_local_demo.sh
 
 The `sealed_worker` process:
 
-- Sets `RLIMIT_CORE=0` and `PR_SET_DUMPABLE=0` (harder unprivileged ptrace / core dumps)
+- Sets `RLIMIT_CORE=0` on Linux and macOS (no core dumps)
+- **Linux:** `PR_SET_DUMPABLE=0` (harder unprivileged ptrace / Yama)
+- **macOS:** `PT_DENY_ATTACH` (best-effort anti-attach; not Yama-equivalent)
 - Zeroizes secret buffers after use
 - Never logs secret bytes
 - Optional `LEAN_TEE_SEALED_MLOCK=1` (`mlockall`, best-effort)

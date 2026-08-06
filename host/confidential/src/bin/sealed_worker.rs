@@ -13,7 +13,7 @@ use std::process;
 use zeroize::{Zeroize, Zeroizing};
 
 fn harden_against_weaker_agents() {
-    // Disable core dumps for this process.
+    // Disable core dumps for this process (Linux + macOS).
     #[cfg(unix)]
     unsafe {
         let lim = libc::rlimit {
@@ -21,8 +21,16 @@ fn harden_against_weaker_agents() {
             rlim_max: 0,
         };
         let _ = libc::setrlimit(libc::RLIMIT_CORE, &lim);
-        // Not dumpable → harder for unprivileged ptrace attach (Yama/ptrace).
+    }
+    // Not dumpable → harder for unprivileged ptrace attach (Yama/ptrace). Linux only.
+    #[cfg(target_os = "linux")]
+    unsafe {
         let _ = libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0);
+    }
+    // Best-effort Darwin anti-attach (not equivalent to Linux PR_SET_DUMPABLE / Yama).
+    #[cfg(target_os = "macos")]
+    unsafe {
+        let _ = libc::ptrace(libc::PT_DENY_ATTACH, 0, std::ptr::null_mut(), 0);
     }
     // Optional mlock of current pages (best-effort; ignore failure).
     if std::env::var("LEAN_TEE_SEALED_MLOCK").ok().as_deref() == Some("1") {

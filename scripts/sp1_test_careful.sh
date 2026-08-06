@@ -5,10 +5,12 @@
 # Staged SP1 tests — avoids proving three cases back-to-back (OOM risk on 16GB).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=lib/platform.sh
+source "$ROOT/scripts/lib/platform.sh"
 export PATH="${HOME}/.sp1/bin:${PATH}"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/host/target}"
 export SP1_PROVER="${SP1_PROVER:-cpu}"
-export PROTOC="${PROTOC:-$HOME/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/protoc-bin-vendored-linux-x86_64-3.2.0/bin/protoc}"
+export PROTOC="${PROTOC:-$(default_protoc)}"
 
 if ! command -v cargo-prove >/dev/null 2>&1; then
   echo "cargo-prove not on PATH; run: source ~/.bashrc && sp1up" >&2
@@ -18,7 +20,7 @@ fi
 cd "$ROOT/host"
 
 echo "== free memory =="
-free -h | head -2
+print_mem_summary
 
 echo "== Lean SP1 runtime + guest archive =="
 cd "$ROOT"
@@ -37,9 +39,9 @@ echo "== SP1 prove+verify one case (default: mock — safe on 16GB laptops) =="
 echo "   Real CPU prove is gated (can hard-lock ≤16GB hosts)."
 echo "   Prefer GitHub Actions prove_heavy, or: SP1_PROVE_HEAVY=1 SP1_PROVE_HEAVY_FORCE=1 $0"
 if [[ "${SP1_PROVE_HEAVY:-}" == "1" ]]; then
-  avail_kib="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+  avail_kib="$(mem_available_kib)"
   need_kib=$((10 * 1024 * 1024))
-  free -h | head -2
+  print_mem_summary
   if [[ "${SP1_PROVE_HEAVY_FORCE:-}" != "1" && "${GITHUB_ACTIONS:-}" != "true" && "${avail_kib}" -lt "${need_kib}" ]]; then
     echo "SP1_PROVE_HEAVY refused: MemAvailable=${avail_kib} KiB (<10 GiB)." >&2
     echo "Do not force on a laptop you care about; use CI prove_heavy / a big machine." >&2
