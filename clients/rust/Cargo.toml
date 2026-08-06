@@ -7,11 +7,12 @@ description = "Thin tonic client for lean_tee.v1 Tee + Prove"
 
 [dependencies]
 lean_tee_receipt = { path = "../../host/receipt" }
-prost = "0.13"
+prost = "0.14"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-tonic = { version = "0.12", features = ["transport"] }
+tonic = { version = "0.14", features = ["transport"] }
+tonic-prost = "0.14"
 hex = "0.4"
 
 [build-dependencies]
 protoc-bin-vendored = "3"
-tonic-build = "0.12"
+tonic-prost-build = "0.14"

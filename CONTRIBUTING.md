@@ -6,6 +6,7 @@ By participating, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Before you start
 
 - Read [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for toolchain setup.
+- **Supported platforms:** Linux and macOS (CI is Linux; macOS is first-class locally).
 - **Mock path** (`lean-tee-v1`) is the default for local iteration — no SP1 required.
 - **Production integrity** (`lean-tee-v2`) needs SP1; see [host/README.md](host/README.md).
 
@@ -16,7 +17,9 @@ git clone https://github.com/RileyBetts/lean-tee.git
 cd lean-tee
 # elan installs Lean 4.32.1 from lean-toolchain
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
-sudo apt-get install -y libssl-dev pkg-config   # Debian/Ubuntu
+# Linux:  sudo apt-get install -y libssl-dev pkg-config
+# macOS:  brew install openssl pkg-config
+#         export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig"
 
 lake update    # fetches lean-grpc v1.1.0 into .lake/packages
 lake build receiptTests teeServer teeClient
@@ -71,7 +74,7 @@ Do not run real CPU `SP1_PROVER=cpu --prove-one` on ≤16 GiB machines without
 
 1. Branch from `main` (or the active integration branch agreed with maintainers).
 2. Ensure mock CI paths pass locally when touching receipts, guests, or gRPC.
-3. If you change the Lean SP1 guest or runtime patches, run or note `sp1-execute` workflow impact.
+3. If you change the Lean SP1 guest or runtime patches, run `bash scripts/sp1_execute_ci.sh` locally (and refresh `artifacts/sp1_guest_digests.json` from Linux if digests change). Automatic `sp1-execute` CI is off for now — GH runners lack the compute.
 4. Describe **why** in the PR body; link issues if any.
 5. Do not commit secrets, `.env` files, `host/target/`, `.cache/`, or editor junk (e.g. `.#`).
 

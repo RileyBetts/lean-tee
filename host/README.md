@@ -2,6 +2,8 @@
 
 Requires [SP1](https://docs.succinct.xyz/docs/sp1/getting-started/install) (`sp1up` → `cargo prove`, version **6.3.1** aligned with this workspace).
 
+**Platforms:** Linux and macOS. Published ELF/vk digests are pinned from Linux CI; Mac rebuilds may produce different digests.
+
 ## Layout
 
 | Crate | Role |
@@ -17,7 +19,11 @@ Requires [SP1](https://docs.succinct.xyz/docs/sp1/getting-started/install) (`sp1
 curl -L https://sp1.succinct.xyz | bash
 source ~/.bashrc   # or: export PATH="$HOME/.sp1/bin:$PATH"
 sp1up
+sp1up --c-toolchain   # RISC-V gcc for Lean guest C
 cargo prove --version   # expect sp1 ~6.3.x
+
+# macOS: libs expected by SP1's riscv64-unknown-elf-g++ (cc1plus)
+# brew install isl gmp mpfr libmpc
 ```
 
 ## Thorough SP1 test (careful / low OOM risk)
@@ -45,7 +51,7 @@ SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0 # SDK prove/verify path
 # Do NOT run SP1_PROVER=cpu --prove-one on ≤16GiB laptops (hard lock / OOM risk).
 ```
 
-GitHub Actions (`sp1-execute`): schedule = execute + digests; manual `prove_one` = mock prove; `prove_one` + `prove_heavy` = one real CPU prove (use only when the runner has headroom).
+GitHub Actions (`sp1-execute`): **manual `workflow_dispatch` only** for now (GH-hosted runners lack SP1 compute). Prefer `bash scripts/sp1_execute_ci.sh` locally. Optional `prove_one` = mock prove; `prove_one` + `prove_heavy` = one real CPU prove on a larger runner.
 
 ## Prove gRPC (for Lean Tee)
 

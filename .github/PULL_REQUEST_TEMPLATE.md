@@ -6,7 +6,7 @@
 
 - [ ] Mock path: `bash scripts/ci.sh` (or relevant demos) when touching receipts / guests / gRPC
 - [ ] Rust: `cd host && cargo test -p lean_tee_receipt -p lean_tee_compliance` if host crypto/guests change
-- [ ] SP1: note `sp1-execute` impact if guest/runtime/digests change
+- [ ] SP1: if guest/runtime/digests change, run `scripts/sp1_execute_ci.sh` locally (CI smoke is manual-only for now)
 - [ ] Docs/proto updated if wire or Accept semantics change
 
 ## Checklist
