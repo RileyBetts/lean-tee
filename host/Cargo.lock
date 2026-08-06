@@ -1810,6 +1810,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "lean_tee_guest_lean_mid"
+version = "1.0.1"
+dependencies = [
+ "cc",
+ "sp1-zkvm",
+]
+
+[[package]]
 name = "lean_tee_guest_lean_spike"
 version = "1.0.1"
 dependencies = [

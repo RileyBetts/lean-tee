@@ -12,6 +12,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         sp1_build::build_program("../guest_lean_spike");
         println!("cargo:rerun-if-changed=../guest_lean_spike");
         println!("cargo:rerun-if-changed=../guest_lean_spike/c");
+        sp1_build::build_program("../guest_lean_mid");
+        println!("cargo:rerun-if-changed=../guest_lean_mid");
+        println!("cargo:rerun-if-changed=../guest_lean_mid/c");
         sp1_build::build_program("../guest_lean");
         println!("cargo:rerun-if-changed=../guest_lean");
         println!("cargo:rerun-if-changed=../lean_sp1_runtime");

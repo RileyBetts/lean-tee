@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Pin lean-grpc dependency to **v1.1.0** (was v1.0.0)
+- Mid-tier Lean SP1 guest + `sp1_lean_mid_smoke --prove` (Init-free mix/rounds; laptop-oriented)
+- Spike smoke: optional `--prove` for CPU prove+verify
+
 
 ## 1.0.1 — 2026-08-05
 

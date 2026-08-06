@@ -6,6 +6,7 @@ members = [
   "confidential",
   "guest",
   "guest_lean_spike",
+  "guest_lean_mid",
   "guest_lean",
   "prove_server",
 ]

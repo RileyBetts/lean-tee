@@ -20,6 +20,11 @@ path = "src/bin/sp1_lean_spike_smoke.rs"
 required-features = ["sp1"]
 
 [[bin]]
+name = "sp1_lean_mid_smoke"
+path = "src/bin/sp1_lean_mid_smoke.rs"
+required-features = ["sp1"]
+
+[[bin]]
 name = "sp1_lean_guest_smoke"
 path = "src/bin/sp1_lean_guest_smoke.rs"
 required-features = ["sp1"]

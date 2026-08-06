@@ -32,7 +32,26 @@ Upstream SP1 is **MIT OR Apache-2.0**. lean-tee first-party code is **Apache-2.0
 | Lean→C sync | [`scripts/sp1_lean_spike_sync.sh`](../scripts/sp1_lean_spike_sync.sh) |
 | C in guest | [`host/guest_lean_spike/c/lean_sp1_spike.c`](../host/guest_lean_spike/c/lean_sp1_spike.c) |
 | SP1 guest crate | [`host/guest_lean_spike`](../host/guest_lean_spike) |
-| Smoke | `sp1_lean_spike_smoke` (execute-only) |
+| Smoke | `sp1_lean_spike_smoke` (`--prove` for laptop CPU prove+verify) |
+
+## Mid-tier (laptop prove, richer than spike)
+
+Init-free Lean `UInt32` mix over a short word list + fixed rounds — between spike (~5k cycles) and full compliance (~170k).
+
+| Piece | Path |
+| --- | --- |
+| Lean source | [`LeanTee/Sp1Mid.lean`](../LeanTee/Sp1Mid.lean) |
+| Lean→C sync | [`scripts/sp1_lean_mid_sync.sh`](../scripts/sp1_lean_mid_sync.sh) |
+| C in guest | [`host/guest_lean_mid/c/lean_sp1_mid.c`](../host/guest_lean_mid/c/lean_sp1_mid.c) |
+| SP1 guest crate | [`host/guest_lean_mid`](../host/guest_lean_mid) |
+| Smoke | `sp1_lean_mid_smoke` (`--prove` for laptop CPU prove+verify) |
+
+```bash
+bash scripts/sp1_lean_mid_sync.sh
+cd host && cargo build -p lean_tee_prove_server --release --features sp1 --bin sp1_lean_mid_smoke
+SP1_PROVER=cpu ./target/release/sp1_lean_mid_smoke --prove
+```
+
 
 Prerequisite: SP1 with the RISC-V C toolchain (`sp1up --c-toolchain`):
 
