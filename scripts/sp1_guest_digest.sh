@@ -6,11 +6,13 @@
 # Wire Measurement stays codeHash+configHash; these digests pin the executable.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=lib/platform.sh
+source "$ROOT/scripts/lib/platform.sh"
 OUT="${1:-$ROOT/artifacts/sp1_guest_digests.json}"
 export PATH="${HOME}/.elan/bin:${HOME}/.sp1/bin:${HOME}/.sp1/riscv/bin:${PATH}"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/host/target}"
 export SP1_PROVER="${SP1_PROVER:-cpu}"
-export PROTOC="${PROTOC:-$HOME/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/protoc-bin-vendored-linux-x86_64-3.2.0/bin/protoc}"
+export PROTOC="${PROTOC:-$(default_protoc)}"
 export CC_riscv64im_succinct_zkvm_elf="${CC_riscv64im_succinct_zkvm_elf:-$HOME/.sp1/riscv/bin/riscv64-unknown-elf-gcc}"
 
 if ! command -v cargo-prove >/dev/null 2>&1; then

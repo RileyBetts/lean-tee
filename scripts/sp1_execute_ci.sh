@@ -6,10 +6,12 @@
 # Measured guest is Lean-compiled (`lean_tee_guest_lean`).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=lib/platform.sh
+source "$ROOT/scripts/lib/platform.sh"
 export PATH="${HOME}/.elan/bin:${HOME}/.sp1/bin:${HOME}/.sp1/riscv/bin:${PATH}"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/host/target}"
 export SP1_PROVER="${SP1_PROVER:-cpu}"
-export PROTOC="${PROTOC:-$HOME/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/protoc-bin-vendored-linux-x86_64-3.2.0/bin/protoc}"
+export PROTOC="${PROTOC:-$(default_protoc)}"
 export CC_riscv64im_succinct_zkvm_elf="${CC_riscv64im_succinct_zkvm_elf:-$HOME/.sp1/riscv/bin/riscv64-unknown-elf-gcc}"
 
 if ! command -v cargo-prove >/dev/null 2>&1; then
@@ -30,7 +32,7 @@ if [[ ! -d "$ROOT/.lake/packages/lean-grpc" && ! -d "$ROOT/../lean-grpc" ]]; the
   lake update
 fi
 echo "== free memory =="
-free -h | head -2
+print_mem_summary
 
 echo "== Lean SP1 runtime + guest archive =="
 bash scripts/sp1_lean_runtime_fetch.sh
@@ -63,9 +65,9 @@ if [[ "${SP1_PROVE_ONE:-}" == "1" ]]; then
   if [[ "${SP1_PROVE_HEAVY:-}" == "1" ]]; then
     # Real CPU prove of the Lean ELF routinely needs >>8 GiB free; on 16 GiB
     # laptops this has hard-locked the machine. Abort unless explicitly forced.
-    avail_kib="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+    avail_kib="$(mem_available_kib)"
     need_kib=$((10 * 1024 * 1024)) # 10 GiB
-    free -h | head -2
+    print_mem_summary
     if [[ "${SP1_PROVE_HEAVY_FORCE:-}" != "1" && "${GITHUB_ACTIONS:-}" != "true" && "${avail_kib}" -lt "${need_kib}" ]]; then
       echo "SP1_PROVE_HEAVY refused: MemAvailable=${avail_kib} KiB (<10 GiB)." >&2
       echo "Use Actions prove_heavy / a larger machine, or SP1_PROVE_HEAVY_FORCE=1 (OOM/lockup risk)." >&2
