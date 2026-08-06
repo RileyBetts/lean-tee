@@ -3,7 +3,7 @@
   "profile": "lean-tee-v2",
   "code_id_example": "lean-tee/compliance_operator/lean-sp1/v1",
   "code_hash": "bec5a1b6fd790b3332da9ebdd744dbe4d58612fa9de64321298ddea05a40784f",
-  "elf_sha256": "23e1bf0a53cc733746c898e561fde4eeffef403f53425f1e49c62d05f524744a",
+  "elf_sha256": "cfaef020528620feed5e970d4828137f443a53328539b3a64483a84ad3ef3554",
   "elf_bytes": 2128064,
   "vk_hash_bytes": "49223f521ef81309217bbfb46f9820ed68a26bf52a5911801b90df8a025bd915",
   "vk_bytes32": "0x0092447ea47be04c250bddfda6f9820edd144d7eaa9644600dc86fc5025bd915",
