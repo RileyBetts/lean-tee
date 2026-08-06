@@ -9,7 +9,7 @@ jobs:
   lean-mock:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install deps
         run: |
           sudo apt-get update -qq
@@ -47,7 +47,7 @@ jobs:
   rust-mock:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - name: Test receipt + compliance
         working-directory: host
