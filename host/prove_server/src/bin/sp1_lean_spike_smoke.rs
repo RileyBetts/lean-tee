@@ -7,9 +7,13 @@
 //! bash scripts/sp1_lean_spike_sync.sh
 //! cargo build -p lean_tee_prove_server --release --features sp1 --bin sp1_lean_spike_smoke
 //! SP1_PROVER=cpu ./target/release/sp1_lean_spike_smoke
+//! SP1_PROVER=cpu ./target/release/sp1_lean_spike_smoke --prove   # real CPU prove+verify
 //! ```
 
-use sp1_sdk::{blocking::{Prover, ProverClient}, include_elf, Elf, SP1Stdin};
+use sp1_sdk::{
+    blocking::{ProveRequest, Prover, ProverClient},
+    include_elf, Elf, ProvingKey, SP1Stdin,
+};
 
 const ELF: Elf = include_elf!("lean_tee_guest_lean_spike");
 
@@ -18,6 +22,7 @@ fn main() {
     if std::env::var_os("SP1_PROVER").is_none() {
         std::env::set_var("SP1_PROVER", "cpu");
     }
+    let prove = std::env::args().any(|a| a == "--prove");
 
     let a: u32 = 40;
     let b: u32 = 2;
@@ -30,7 +35,7 @@ fn main() {
 
     let client = ProverClient::from_env();
     let (pv, report) = client
-        .execute(ELF, stdin)
+        .execute(ELF, stdin.clone())
         .run()
         .unwrap_or_else(|e| panic!("lean spike execute failed: {e}"));
 
@@ -47,7 +52,26 @@ fn main() {
     assert_eq!(sum, expect_sum, "lean_tee_sp1_add mismatch");
 
     println!(
-        "sp1_lean_spike_smoke OK tag={tag:#x} sum={sum} cycles={}",
+        "sp1_lean_spike_smoke execute OK tag={tag:#x} sum={sum} cycles={}",
         report.total_instruction_count()
     );
+
+    if !prove {
+        println!("sp1_lean_spike_smoke OK (pass --prove for CPU prove+verify)");
+        return;
+    }
+
+    println!(
+        "starting spike prove (SP1_PROVER={})…",
+        std::env::var("SP1_PROVER").unwrap_or_default()
+    );
+    let pk = client.setup(ELF).expect("spike setup");
+    let proof = client
+        .prove(&pk, stdin)
+        .run()
+        .unwrap_or_else(|e| panic!("spike prove failed: {e}"));
+    client
+        .verify(&proof, pk.verifying_key(), None)
+        .unwrap_or_else(|e| panic!("spike verify failed: {e}"));
+    println!("sp1_lean_spike_smoke prove+verify OK");
 }

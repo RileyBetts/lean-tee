@@ -1,8 +1,3 @@
-/*
- * Copyright © 2026 Riley Betts Ltd (rileybetts.ai)
- * SPDX-License-Identifier: Apache-2.0
- */
-
 // AUTO-SYNCED skeleton from LeanTee/Sp1Spike.lean — phase-0 spike (no Init runtime).
 // Regenerate commentary via: bash scripts/sp1_lean_spike_sync.sh
 // The bodies of lean_tee_sp1_add / hello tag match Lake IR under Lean 4.32.1.
