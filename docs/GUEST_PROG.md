@@ -99,7 +99,7 @@ bash scripts/sp1_test_careful.sh
 bash scripts/sp1_execute_ci.sh
 ```
 
-Workflow: [`.github/workflows/sp1-execute.yml`](../.github/workflows/sp1-execute.yml) (weekly + `workflow_dispatch`).
+Workflow: [`.github/workflows/sp1-execute.yml`](../.github/workflows/sp1-execute.yml) (`workflow_dispatch` only for now; prefer local `scripts/sp1_execute_ci.sh`).
 
 ## Honest claims
 

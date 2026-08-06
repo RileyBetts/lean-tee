@@ -1,33 +1,19 @@
 name: sp1-execute
 
-# SP1 path: PR/push (path-filtered), weekly execute + digest pin check,
-# weekly heavy prove on a larger runner, manual dispatch overrides.
+# SP1 Lean guest smoke + digest pin. Manual only for now — GitHub-hosted
+# runners do not have enough RAM/CPU for reliable execute/prove. Run locally
+# (or on a suitably sized self-hosted runner) via:
+#   bash scripts/sp1_execute_ci.sh
+#   gh workflow run sp1-execute.yml -f prove_one=false -f prove_heavy=false
+# Re-enable pull_request / push / schedule when adequate compute is available.
 
 on:
-  pull_request:
-    paths: &sp1_paths
-      - "host/guest_lean/**"
-      - "host/guest_lean_spike/**"
-      - "host/lean_sp1_runtime/**"
-      - "host/lean_sp1_init_min/**"
-      - "host/prove_server/**"
-      - "LeanTee/GuestSp1.lean"
-      - "LeanTee/GuestProg.lean"
-      - "scripts/sp1_*"
-      - "artifacts/sp1_guest_digests.json"
-      - ".github/workflows/sp1-execute.yml"
-  push:
-    branches: [main, lean-sp1-guest]
-    paths: *sp1_paths
-  schedule:
-    - cron: "17 6 * * 1" # weekly Monday 06:17 UTC — execute + digest pin
-    - cron: "47 7 * * 1" # weekly Monday 07:47 UTC — real CPU prove (larger runner)
   workflow_dispatch:
     inputs:
       prove_one:
         description: "Also run one prove (mock unless prove_heavy)"
         type: boolean
-        default: true
+        default: false
       prove_heavy:
         description: "Real CPU prove+verify of Lean ELF (needs prove_one; uses larger runner job)"
         type: boolean
@@ -35,11 +21,7 @@ on:
 
 jobs:
   sp1-execute:
-    if: |
-      github.event_name == 'pull_request' ||
-      github.event_name == 'push' ||
-      (github.event_name == 'schedule' && github.event.schedule == '17 6 * * 1') ||
-      (github.event_name == 'workflow_dispatch' && !inputs.prove_heavy)
+    if: ${{ !inputs.prove_heavy }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -72,8 +54,7 @@ jobs:
       - name: SP1 Lean guest smoke (execute + digest pin)
         working-directory: lean-tee
         env:
-          # PR: execute + mock prove-one. Schedule: execute-only. Manual: inputs.
-          SP1_PROVE_ONE: ${{ github.event_name == 'pull_request' && '1' || (github.event_name == 'workflow_dispatch' && inputs.prove_one && '1' || '0') }}
+          SP1_PROVE_ONE: ${{ inputs.prove_one && '1' || '0' }}
           SP1_PROVE_HEAVY: "0"
           SP1_CHECK_DIGESTS: "1"
           CARGO_TERM_COLOR: always
@@ -86,11 +67,10 @@ jobs:
           if-no-files-found: error
 
   sp1-prove-heavy:
-    # 32 GiB RAM — enable GitHub larger runners for the org/repo if this job queues forever.
+    # Needs a larger runner (≈32 GiB). Skip unless org has ubuntu-latest-8-cores
+    # (or equivalent) enabled — otherwise this job queues forever / OOMs.
     runs-on: ubuntu-latest-8-cores
-    if: |
-      (github.event_name == 'schedule' && github.event.schedule == '47 7 * * 1') ||
-      (github.event_name == 'workflow_dispatch' && inputs.prove_one && inputs.prove_heavy)
+    if: ${{ inputs.prove_one && inputs.prove_heavy }}
     timeout-minutes: 240
     steps:
       - uses: actions/checkout@v7
