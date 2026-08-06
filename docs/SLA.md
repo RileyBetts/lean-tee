@@ -14,7 +14,7 @@ It does **not** mean:
 
 | Profile | Expectation |
 | --- | --- |
-| `lean-tee-v2` (SP1) | **Production default.** Host must verify SP1 before advertising `proof_ref`. Prove latency depends on hardware (`SP1_PROVER`, CPU RAM). Gated CI: weekly SP1 execute-only. |
+| `lean-tee-v2` (SP1) | **Production default.** Host must verify SP1 before advertising `proof_ref`. Prove latency depends on hardware (`SP1_PROVER`, CPU RAM). SP1 execute smoke: local / manual dispatch only (GH-hosted runners lack compute for now). |
 | `lean-tee-v1` (mock) | **CI/dev only.** Deterministic mock digest. Not production attestation — never the hero path. |
 
 ## Durable jobs

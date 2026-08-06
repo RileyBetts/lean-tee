@@ -42,7 +42,7 @@ Registry file: [`config/guests/registry.json`](../config/guests/registry.json) (
 | Proof | SP1 Hypercube proof commitment | Deterministic mock digest |
 | Suitable for | **Production integrity** | CI, demos only — **never production** |
 | Confidentiality | No | No |
-| CI gate | Weekly + manual SP1 execute ([`sp1-execute.yml`](../.github/workflows/sp1-execute.yml)) | Push/PR mock demos |
+| CI gate | SP1 smoke is **manual / local only** for now ([`sp1-execute.yml`](../.github/workflows/sp1-execute.yml) `workflow_dispatch`; GH runners lack compute) | Push/PR mock demos |
 
 `LEAN_TEE_DEFAULT_PROFILE` defaults to **`lean-tee-v2`**. Without `LEAN_TEE_PROVE_ADDR`, the server **refuses to start** unless `LEAN_TEE_ALLOW_MOCK_V2=1` (demos only). Wire SP1 `prove_server` for real v2.
 

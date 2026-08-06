@@ -131,7 +131,7 @@ bash scripts/sp1_guest_digest.sh                  # → artifacts/sp1_guest_dige
 # sp1_smoke --execute-only --print-digests --write-digests artifacts/sp1_guest_digests.json
 ```
 
-CI uploads the same JSON as the `sp1-guest-digests` artifact on `sp1-execute`. Real CPU prove+verify of one Lean-ELF case is **gated** (`workflow_dispatch` → `prove_one` + `prove_heavy`). Do **not** run local `SP1_PROVER=cpu --prove-one` on ≤16 GiB hosts — it can OOM/lock the machine; scripts require ≥10 GiB free or `SP1_PROVE_HEAVY_FORCE=1`.
+CI uploads the same JSON as the `sp1-guest-digests` artifact when `sp1-execute` is run manually. Automatic PR/push/schedule SP1 smoke is **off** (GH runners lack compute) — use `bash scripts/sp1_execute_ci.sh` locally. Real CPU prove+verify of one Lean-ELF case is **gated** (`workflow_dispatch` → `prove_one` + `prove_heavy`). Do **not** run local `SP1_PROVER=cpu --prove-one` on ≤16 GiB hosts — it can OOM/lock the machine; scripts require ≥10 GiB free or `SP1_PROVE_HEAVY_FORCE=1`.
 
 ### SP1 FENCE note
 

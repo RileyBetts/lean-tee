@@ -45,7 +45,7 @@ SP1_PROVER=mock ./target/release/sp1_smoke --prove-one 0 # SDK prove/verify path
 # Do NOT run SP1_PROVER=cpu --prove-one on ≤16GiB laptops (hard lock / OOM risk).
 ```
 
-GitHub Actions (`sp1-execute`): schedule = execute + digests; manual `prove_one` = mock prove; `prove_one` + `prove_heavy` = one real CPU prove (use only when the runner has headroom).
+GitHub Actions (`sp1-execute`): **manual `workflow_dispatch` only** for now (GH-hosted runners lack SP1 compute). Prefer `bash scripts/sp1_execute_ci.sh` locally. Optional `prove_one` = mock prove; `prove_one` + `prove_heavy` = one real CPU prove on a larger runner.
 
 ## Prove gRPC (for Lean Tee)
 
