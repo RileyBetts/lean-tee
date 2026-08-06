@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Coordinated Dependabot upgrades: tonic/tonic-prost/prost 0.14, sha2 0.11, Actions checkout/upload-artifact v7; ignore bincode majors (3.0.0 is an unmaintained stub)
 - Pin lean-grpc dependency to **v1.1.0** (was v1.0.0)
 - Mid-tier Lean SP1 guest + `sp1_lean_mid_smoke --prove` (Init-free mix/rounds; laptop-oriented)
 - Spike smoke: optional `--prove` for CPU prove+verify

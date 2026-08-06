@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::env::set_var("PROTOC", &protoc);
     let proto = "../../proto/lean_tee/v1/tee.proto";
     println!("cargo:rerun-if-changed={proto}");
-    tonic_build::configure()
+    tonic_prost_build::configure()
         .build_client(false)
         .build_server(true)
         .compile_protos(&[proto], &["../../proto"])?;

@@ -5,11 +5,29 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
+    ignore:
+      # bincode 3.0.0 is an intentional unmaintained stub that only fails to compile.
+      - dependency-name: bincode
+        update-types: ["version-update:semver-major"]
+    groups:
+      tonic-prost:
+        patterns:
+          - "tonic"
+          - "tonic-*"
+          - "prost"
+          - "prost-*"
   - package-ecosystem: cargo
     directory: /clients/rust
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    groups:
+      tonic-prost:
+        patterns:
+          - "tonic"
+          - "tonic-*"
+          - "prost"
+          - "prost-*"
   - package-ecosystem: github-actions
     directory: /
     schedule:
