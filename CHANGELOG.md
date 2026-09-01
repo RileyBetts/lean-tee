@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Coordinated SP1 **6.5.0** (`sp1-sdk` / `sp1-build` / `sp1-zkvm`); blake3 1.8.7; cc 1.4.4; fix `ProveRequest`/`ProvingKey` imports for SP1 6.3+ builds
+- Dependabot: target `development`, group `sp1-*` (avoid one-crate skew)
+- ELF/vk digest pin still last Linux 6.3.1-era values — refresh on Linux after guest rebuild (`scripts/sp1_guest_digest.sh`)
 - First-class Linux + macOS: `sealed_worker` cfg-splits Linux `prctl` / macOS `PT_DENY_ATTACH`; SP1 scripts use portable mem/`PROTOC` helpers (`scripts/lib/platform.sh`)
 - SP1 `sp1-execute` CI: disable PR/push/schedule; keep `workflow_dispatch` only (GH runners lack SP1 compute) — run `scripts/sp1_execute_ci.sh` locally
 - Coordinated Dependabot upgrades: tonic/tonic-prost/prost 0.14, sha2 0.11, Actions checkout/upload-artifact v7; ignore bincode majors (3.0.0 is an unmaintained stub)
