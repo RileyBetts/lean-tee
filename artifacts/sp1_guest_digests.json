@@ -3,10 +3,10 @@
   "profile": "lean-tee-v2",
   "code_id_example": "lean-tee/compliance_operator/lean-sp1/v1",
   "code_hash": "bec5a1b6fd790b3332da9ebdd744dbe4d58612fa9de64321298ddea05a40784f",
-  "elf_sha256": "63b7e1b1fc8de5cca31a3df40f2e97db7b5dec497d8213aafd34abe3dd506c21",
-  "elf_bytes": 2128208,
-  "vk_hash_bytes": "128ed54d1e904e3d0633d0b0509a37d34b0f4ade561aca9c7ed300b01fb8cf34",
-  "vk_bytes32": "0x00251daa9a7a4138f4319e858509a37d3961e95bd586b2a73f6980581fb8cf34",
-  "sp1_version": "6.3.1",
-  "note": "Wire Measurement remains codeHash+configHash (logical code_id). elf_sha256 / vk_* pin the SP1 executable for counterparties and host verify."
+  "elf_sha256": "a56164482d7bf6056d5ac0cc1fe7bf9904701cc45c8e552ec284176f2caeedc3",
+  "elf_bytes": 2128104,
+  "vk_hash_bytes": "35b959ae48d96d621cfb9a833931f68e216ccc35776148274f12e1b8257787ed",
+  "vk_bytes32": "0x006b72b35d2365b588e7dcd41b931f68e42d9986bdd85209e78970dc257787ed",
+  "sp1_version": "6.5.0",
+  "note": "Wire Measurement remains codeHash+configHash (logical code_id). elf_sha256 / vk_* pin the SP1 executable for counterparties and host verify. Hashes from Linux sp1-execute on 2026-09-01 (SP1 6.5.0)."
 }
