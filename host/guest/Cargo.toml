@@ -7,4 +7,4 @@ description = "SP1 RISC-V zkVM guest: compliance operator (single measured ELF)"
 
 [dependencies]
 lean_tee_compliance = { path = "../compliance_lib" }
-sp1-zkvm = "6.3.1"
+sp1-zkvm = "6.5.0"

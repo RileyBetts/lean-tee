@@ -32,7 +32,7 @@ Gate checklist before flipping [RileyBetts/lean-tee](https://github.com/RileyBet
 | Issue / PR templates | **Fix applied** | `.github/ISSUE_TEMPLATE/`, PR template |
 | CODEOWNERS / Dependabot | **Fix applied** | Optional polish landed |
 | Secret scrub | **Pass** | No private keys/tokens found; `.env` gitignored |
-| `main` / `v1.0.1` | **Pass** | Default branch `main`; CI green; package versions and tag `v1.0.1` aligned. |
+| `main` / `v1.1.0` | **Pass** | Default branch `main`; package versions and tag `v1.1.0` aligned; Dependabot targets `development`. |
 
 ## Gate 4 — Supply chain / licenses
 
@@ -51,7 +51,7 @@ Gate checklist before flipping [RileyBetts/lean-tee](https://github.com/RileyBet
 | Enable vulnerability alerts / secret scanning | **Done** |
 | Set visibility public | **Done** — https://github.com/RileyBetts/lean-tee |
 | Fresh-clone verify | **Done** — `git clone` + `lake update` (lean-grpc v1.1.0) |
-| Release note / Reservoir watch | **Done** — `v1.0.1` is latest; watch Reservoir over coming days |
+| Release note / Reservoir watch | **Done** — `v1.1.0` is latest |
 
 ## Deferred (honest roadmap)
 

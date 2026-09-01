@@ -95,8 +95,8 @@ fn prove_sp1(
 ) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
     use sha2::{Digest, Sha256};
     use sp1_sdk::{
-        blocking::{Prover, ProverClient},
-        include_elf, Elf, SP1Stdin,
+        blocking::{ProveRequest, Prover, ProverClient},
+        include_elf, Elf, ProvingKey, SP1Stdin,
     };
 
     const ELF: Elf = include_elf!("lean_tee_guest_lean");

@@ -1,14 +1,30 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 — 2026-09-01
+
+Minor release: first-class macOS, SP1 **6.5.0**, gRPC stack 0.14, and Dependabot aimed at `development`.
+
+### Platforms
 
 - First-class Linux + macOS: `sealed_worker` cfg-splits Linux `prctl` / macOS `PT_DENY_ATTACH`; SP1 scripts use portable mem/`PROTOC` helpers (`scripts/lib/platform.sh`)
-- SP1 `sp1-execute` CI: disable PR/push/schedule; keep `workflow_dispatch` only (GH runners lack SP1 compute) — run `scripts/sp1_execute_ci.sh` locally
-- Coordinated Dependabot upgrades: tonic/tonic-prost/prost 0.14, sha2 0.11, Actions checkout/upload-artifact v7; ignore bincode majors (3.0.0 is an unmaintained stub)
-- Pin lean-grpc dependency to **v1.1.0** (was v1.0.0)
-- Mid-tier Lean SP1 guest + `sp1_lean_mid_smoke --prove` (Init-free mix/rounds; laptop-oriented)
-- Spike smoke: optional `--prove` for CPU prove+verify
 
+### SP1 / integrity
+
+- Coordinated SP1 **6.5.0** (`sp1-sdk` / `sp1-build` / `sp1-zkvm`); fix `ProveRequest`/`ProvingKey` imports for SP1 6.3+ builds
+- Refresh ELF/vk pin in `artifacts/sp1_guest_digests.json` for the 6.5.0 guest rebuild (Linux)
+- Mid-tier Lean SP1 guest + `sp1_lean_mid_smoke --prove`; spike smoke optional `--prove`
+- SP1 `sp1-execute` CI: PR/push/schedule off (GH runners lack compute); `workflow_dispatch` + local `scripts/sp1_execute_ci.sh`
+
+### Dependencies / CI
+
+- tonic / tonic-prost / prost **0.14**; sha2 **0.11**; blake3 1.8.7; cc 1.4.4; Actions checkout/upload-artifact **v7**
+- Ignore bincode majors (3.0.0 is an unmaintained compile-error stub)
+- Dependabot: `target-branch: development`, group `sp1-*` and tonic/prost
+- Pin lean-grpc dependency to **v1.1.0**
+
+### Packages
+
+- Lake **1.1.0**, host workspace **1.1.0**, Rust client **1.1.0**
 
 ## 1.0.1 — 2026-08-05
 
@@ -75,4 +91,4 @@ First stable release: Lean-measured SP1 guest, integrity-hardened Accept path, a
 - Initial product spine: Lean Tee/Prove/Verify/AnchorSink, mock proofs, teeServer/teeClient
 - Host compliance lib + SP1-ready prove_server
 - Product docs, `lean_tee_receipt`, standalone demo, CI, clients, policy/registry, SP1 host verify path
-- Profiles: `lean-tee-v1` (mock), `lean-tee-v2` (SP1)
+- Lake package metadata for Reservoir
