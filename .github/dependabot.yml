@@ -5,6 +5,8 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
+    # Prefer feature → development → main; Dependabot otherwise targets default (main).
+    target-branch: development
     ignore:
       # bincode 3.0.0 is an intentional unmaintained stub that only fails to compile.
       - dependency-name: bincode
@@ -16,11 +18,15 @@ updates:
           - "tonic-*"
           - "prost"
           - "prost-*"
+      sp1:
+        patterns:
+          - "sp1-*"
   - package-ecosystem: cargo
     directory: /clients/rust
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    target-branch: development
     groups:
       tonic-prost:
         patterns:
@@ -32,3 +38,4 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    target-branch: development
