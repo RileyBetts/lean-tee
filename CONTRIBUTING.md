@@ -72,11 +72,15 @@ Do not run real CPU `SP1_PROVER=cpu --prove-one` on ≤16 GiB machines without
 
 ## Pull requests
 
-1. Branch from `main` (or the active integration branch agreed with maintainers).
+Flow: **feature → `development` → `main`**. Open product PRs against `development`, not `main`.
+
+1. Branch from `development`.
 2. Ensure mock CI paths pass locally when touching receipts, guests, or gRPC.
 3. If you change the Lean SP1 guest or runtime patches, run `bash scripts/sp1_execute_ci.sh` locally (and refresh `artifacts/sp1_guest_digests.json` from Linux if digests change). Automatic `sp1-execute` CI is off for now — GH runners lack the compute.
 4. Describe **why** in the PR body; link issues if any.
 5. Do not commit secrets, `.env` files, `host/target/`, `.cache/`, or editor junk (e.g. `.#`).
+
+Dependabot PRs target **`development`** (see [`.github/dependabot.yml`](.github/dependabot.yml)). That `target-branch` must stay on the default branch (`main`) or GitHub ignores it.
 
 ## Reporting issues
 
